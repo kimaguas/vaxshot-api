@@ -15,10 +15,18 @@ class UserController extends Controller
     // Get all users
     public function index()
     {
-        $users = User::with('roles')->latest()->get();
+        $users = User::with('roles')->latest()->paginate(10);
 
         return response()->json([
-            'users' => UserResource::collection($users)
+            'users' => UserResource::collection($users),
+            'pagination' => [
+                'total'        => $users->total(),
+                'per_page'     => $users->perPage(),
+                'current_page' => $users->currentPage(),
+                'last_page'    => $users->lastPage(),
+                'from'         => $users->firstItem(),
+                'to'           => $users->lastItem(),
+            ]
         ], 200);
     }
 

@@ -48,11 +48,21 @@ class SaleController extends Controller
             });
         }
 
-        $sales = $query->latest()->get();
+        $sales = $query->latest()->paginate(10);
 
         return response()->json([
-            'sales' => SaleResource::collection($sales)
+            'sales' => SaleResource::collection($sales),
+            'pagination' => [
+                'total'        => $sales->total(),
+                'per_page'     => $sales->perPage(),
+                'current_page' => $sales->currentPage(),
+                'last_page'    => $sales->lastPage(),
+                'from'         => $sales->firstItem(),
+                'to'           => $sales->lastItem(),
+            ]
         ], 200);
+
+
     }
 
     // Get single sale

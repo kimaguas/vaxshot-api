@@ -32,11 +32,22 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->latest()->get();
+        $products = $query->latest()->paginate(10);
 
         return response()->json([
-            'products' => ProductResource::collection($products)
+            'products' => ProductResource::collection($products),
+            'pagination' => [
+                'total'        => $products->total(),
+                'per_page'     => $products->perPage(),
+                'current_page' => $products->currentPage(),
+                'last_page'    => $products->lastPage(),
+                'from'         => $products->firstItem(),
+                'to'           => $products->lastItem(),
+            ]
         ], 200);
+
+
+
     }
 
     // Get single product

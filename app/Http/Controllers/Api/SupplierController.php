@@ -30,11 +30,21 @@ class SupplierController extends Controller
             });
         }
 
-        $suppliers = $query->latest()->get();
+       $suppliers = $query->latest()->paginate(10);
 
         return response()->json([
-            'suppliers' => SupplierResource::collection($suppliers)
+            'suppliers' => SupplierResource::collection($suppliers),
+            'pagination' => [
+                'total'        => $suppliers->total(),
+                'per_page'     => $suppliers->perPage(),
+                'current_page' => $suppliers->currentPage(),
+                'last_page'    => $suppliers->lastPage(),
+                'from'         => $suppliers->firstItem(),
+                'to'           => $suppliers->lastItem(),
+            ]
         ], 200);
+
+
     }
 
     // Get single supplier

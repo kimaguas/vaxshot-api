@@ -36,11 +36,21 @@ class PurchaseOrderController extends Controller
             $query->where('po_number', 'like', "%{$request->search}%");
         }
 
-        $orders = $query->latest()->get();
+        $orders = $query->latest()->paginate(10);
 
         return response()->json([
-            'purchase_orders' => PurchaseOrderResource::collection($orders)
+            'purchase_orders' => PurchaseOrderResource::collection($orders),
+            'pagination' => [
+                'total'        => $orders->total(),
+                'per_page'     => $orders->perPage(),
+                'current_page' => $orders->currentPage(),
+                'last_page'    => $orders->lastPage(),
+                'from'         => $orders->firstItem(),
+                'to'           => $orders->lastItem(),
+            ]
         ], 200);
+
+
     }
 
     // Get single purchase order

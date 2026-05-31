@@ -46,11 +46,21 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->latest()->get();
+        $customers = $query->latest()->paginate(10);
 
         return response()->json([
-            'customers' => CustomerResource::collection($customers)
+            'customers' => CustomerResource::collection($customers),
+            'pagination' => [
+                'total'        => $customers->total(),
+                'per_page'     => $customers->perPage(),
+                'current_page' => $customers->currentPage(),
+                'last_page'    => $customers->lastPage(),
+                'from'         => $customers->firstItem(),
+                'to'           => $customers->lastItem(),
+            ]
         ], 200);
+
+
     }
 
     // Get single customer
