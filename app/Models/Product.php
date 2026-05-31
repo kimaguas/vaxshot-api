@@ -22,31 +22,55 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'acquisition_cost' => 'decimal:2',
-        'selling_price'    => 'decimal:2',
-        'stock'            => 'integer',
-        'maintaining_stock'=> 'integer',
+        'acquisition_cost'  => 'decimal:2',
+        'selling_price'     => 'decimal:2',
+        'stock'             => 'integer',
+        'maintaining_stock' => 'integer',
     ];
 
-    // Relationship to Supplier
+    // Relationships
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
     }
 
-    // Check if product is low on stock
-    public function isLowStock(): bool
+    public function batches()
     {
-        return $this->stock <= $this->maintaining_stock;
+        return $this->hasMany(ProductBatch::class);
     }
 
-    // Scope for active products only
+    public function activeBatches()
+    {
+        return $this->hasMany(ProductBatch::class)
+                    ->where('status', 'active')
+                    ->where('remaining_quantity', '>', 0)
+                    ->where('expiry_date', '>', now())
+                    ->orderBy('expiry_date', 'asc');
+    }
+
+    public function inventoryLogs()
+    {
+        return $this->hasMany(InventoryLog::class);
+    }
+
+    // Get total stock from all active batches
+    public function getTotalStockAttribute(): int
+    {
+        return $this->activeBatches->sum('remaining_quantity');
+    }
+
+    // Check if low stock
+    public function isLowStock(): bool
+    {
+        return $this->total_stock <= $this->maintaining_stock;
+    }
+
+    // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
     }
 
-    // Scope for low stock products
     public function scopeLowStock($query)
     {
         return $query->whereColumn('stock', '<=', 'maintaining_stock');

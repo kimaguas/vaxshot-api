@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\PurchaseOrderReceiptController;
+use App\Http\Controllers\Api\InventoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +42,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('products',  ProductController::class);
         Route::apiResource('suppliers', SupplierController::class);
         Route::apiResource('customers', CustomerController::class);
+
+        // Purchase Orders
+        Route::apiResource('purchase-orders', PurchaseOrderController::class);
+
+        // Purchase Order Receipts (nested)
+        Route::post(
+            'purchase-orders/{purchaseOrder}/receipts',
+            [PurchaseOrderReceiptController::class, 'store']
+        );
+        Route::get(
+            'purchase-orders/{purchaseOrder}/receipts',
+            [PurchaseOrderReceiptController::class, 'index']
+        );
+
     });
 
 });
