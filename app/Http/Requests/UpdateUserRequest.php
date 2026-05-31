@@ -16,6 +16,12 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name'     => 'sometimes|string|max:255',
+            'username' => [
+                'sometimes',
+                'string',
+                'max:255',
+                Rule::unique('users', 'username')->ignore($this->route('user')),
+            ],
             'email'    => [
                 'sometimes',
                 'email',
@@ -29,6 +35,7 @@ class UpdateUserRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'username.unique'    => 'Username already exists',
             'email.unique'       => 'Email already exists',
             'password.min'       => 'Password must be at least 6 characters',
             'password.confirmed' => 'Passwords do not match',

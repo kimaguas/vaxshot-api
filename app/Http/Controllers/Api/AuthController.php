@@ -15,7 +15,10 @@ class AuthController extends Controller
     // Login
     public function login(LoginRequest $request)
     {
-        $user = User::where('email', $request->email)->first();
+        // Try to find user by username or email
+        $user = User::where('username', $request->login)
+                    ->orWhere('email', $request->login)
+                    ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([

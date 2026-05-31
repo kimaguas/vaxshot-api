@@ -20,10 +20,11 @@ class RoleSeeder extends Seeder
 
         // Create default admin user
         $user = User::create([
-            'name'     => 'Super Admin',
-            'email'    => 'admin@vaxshot.com',
-            'password' => Hash::make('admin123'),
-        ]);
+        'name'     => 'Super Admin',
+        'username' => 'admin',
+        'email'    => 'admin@vaxshot.com',
+        'password' => Hash::make('admin123'),
+    ]);
 
         // Assign admin role to default user
         $user->assignRole('admin');
