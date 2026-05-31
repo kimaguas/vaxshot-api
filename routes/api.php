@@ -9,7 +9,8 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\PurchaseOrderReceiptController;
-use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\SalePaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,16 +38,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class);
     });
 
-    // Products, Suppliers, Customers (admin, manager, staff)
+    // Main modules (admin, manager, staff)
     Route::middleware('role:admin|manager|staff')->group(function () {
+
+        // Products, Suppliers, Customers
         Route::apiResource('products',  ProductController::class);
         Route::apiResource('suppliers', SupplierController::class);
         Route::apiResource('customers', CustomerController::class);
 
         // Purchase Orders
         Route::apiResource('purchase-orders', PurchaseOrderController::class);
-
-        // Purchase Order Receipts (nested)
         Route::post(
             'purchase-orders/{purchaseOrder}/receipts',
             [PurchaseOrderReceiptController::class, 'store']
@@ -55,6 +56,15 @@ Route::middleware('auth:sanctum')->group(function () {
             'purchase-orders/{purchaseOrder}/receipts',
             [PurchaseOrderReceiptController::class, 'index']
         );
+
+        // Sales
+        Route::apiResource('sales', SaleController::class);
+        Route::post('sales/{sale}/confirm', [SaleController::class, 'confirm']);
+        Route::post('sales/{sale}/cancel',  [SaleController::class, 'cancel']);
+
+        // Sale Payments
+        Route::get('sales/{sale}/payments',  [SalePaymentController::class, 'index']);
+        Route::post('sales/{sale}/payments', [SalePaymentController::class, 'store']);
 
     });
 
