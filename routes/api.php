@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\SupplierController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Products (admin, manager, staff)
     Route::middleware('role:admin|manager|staff')->group(function () {
         Route::apiResource('products', ProductController::class);
+        Route::apiResource('suppliers', SupplierController::class);
     });
 
 });

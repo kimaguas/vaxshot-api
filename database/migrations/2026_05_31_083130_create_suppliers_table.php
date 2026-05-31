@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::create('suppliers', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->nullable();
-            $table->string('phone')->nullable();
+            $table->string('tin_no')->nullable();
+            $table->string('company');
             $table->text('address')->nullable();
             $table->string('contact_person')->nullable();
+            $table->string('contact_no')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
