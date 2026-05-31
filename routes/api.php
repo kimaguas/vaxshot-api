@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PurchaseOrderReceiptController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SalePaymentController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,23 +70,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Reports
         Route::prefix('reports')->group(function () {
-            Route::get('/sales',          [ReportController::class, 'salesReport']);
-            Route::get('/inventory',      [ReportController::class, 'inventoryReport']);
-            Route::get('/purchase-orders',[ReportController::class, 'purchaseOrderReport']);
-            Route::get('/customers',      [ReportController::class, 'customerReport']);
-            Route::get('/expiry',         [ReportController::class, 'expiryReport']);
+            Route::get('/sales',           [ReportController::class, 'salesReport']);
+            Route::get('/inventory',       [ReportController::class, 'inventoryReport']);
+            Route::get('/purchase-orders', [ReportController::class, 'purchaseOrderReport']);
+            Route::get('/customers',       [ReportController::class, 'customerReport']);
+            Route::get('/expiry',          [ReportController::class, 'expiryReport']);
         });
 
     });
 
-    // Reports (viewer can also see)
+    // Dashboard & Reports (all roles including viewer)
     Route::middleware('role:admin|manager|staff|viewer')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+
         Route::prefix('reports')->group(function () {
-            Route::get('/sales',          [ReportController::class, 'salesReport']);
-            Route::get('/inventory',      [ReportController::class, 'inventoryReport']);
-            Route::get('/purchase-orders',[ReportController::class, 'purchaseOrderReport']);
-            Route::get('/customers',      [ReportController::class, 'customerReport']);
-            Route::get('/expiry',         [ReportController::class, 'expiryReport']);
+            Route::get('/sales',           [ReportController::class, 'salesReport']);
+            Route::get('/inventory',       [ReportController::class, 'inventoryReport']);
+            Route::get('/purchase-orders', [ReportController::class, 'purchaseOrderReport']);
+            Route::get('/customers',       [ReportController::class, 'customerReport']);
+            Route::get('/expiry',          [ReportController::class, 'expiryReport']);
         });
     });
 
