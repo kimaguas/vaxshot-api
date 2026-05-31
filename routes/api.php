@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\PurchaseOrderReceiptController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SalePaymentController;
+use App\Http\Controllers\Api\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,6 +67,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('sales/{sale}/payments',  [SalePaymentController::class, 'index']);
         Route::post('sales/{sale}/payments', [SalePaymentController::class, 'store']);
 
+        // Reports
+        Route::prefix('reports')->group(function () {
+            Route::get('/sales',          [ReportController::class, 'salesReport']);
+            Route::get('/inventory',      [ReportController::class, 'inventoryReport']);
+            Route::get('/purchase-orders',[ReportController::class, 'purchaseOrderReport']);
+            Route::get('/customers',      [ReportController::class, 'customerReport']);
+            Route::get('/expiry',         [ReportController::class, 'expiryReport']);
+        });
+
+    });
+
+    // Reports (viewer can also see)
+    Route::middleware('role:admin|manager|staff|viewer')->group(function () {
+        Route::prefix('reports')->group(function () {
+            Route::get('/sales',          [ReportController::class, 'salesReport']);
+            Route::get('/inventory',      [ReportController::class, 'inventoryReport']);
+            Route::get('/purchase-orders',[ReportController::class, 'purchaseOrderReport']);
+            Route::get('/customers',      [ReportController::class, 'customerReport']);
+            Route::get('/expiry',         [ReportController::class, 'expiryReport']);
+        });
     });
 
 });
