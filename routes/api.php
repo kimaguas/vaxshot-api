@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\CustomerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,10 +34,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class);
     });
 
-    // Products (admin, manager, staff)
+    // Products, Suppliers, Customers (admin, manager, staff)
     Route::middleware('role:admin|manager|staff')->group(function () {
-        Route::apiResource('products', ProductController::class);
+        Route::apiResource('products',  ProductController::class);
         Route::apiResource('suppliers', SupplierController::class);
+        Route::apiResource('customers', CustomerController::class);
     });
 
 });
