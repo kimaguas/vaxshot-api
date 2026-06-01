@@ -9,11 +9,14 @@ use App\Models\ProductBatch;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderReceipt;
 use App\Models\PurchaseOrderReceiptItem;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderReceiptController extends Controller
 {
+    use LogsActivity;
+
     // Get all receipts for a PO
     public function index(PurchaseOrder $purchaseOrder)
     {
@@ -31,18 +34,17 @@ class PurchaseOrderReceiptController extends Controller
     public function store(Request $request, PurchaseOrder $purchaseOrder)
     {
         $request->validate([
-            'receipt_date'              => 'required|date',
-            'notes'                     => 'nullable|string',
-            'items'                     => 'required|array|min:1',
+            'receipt_date'                   => 'required|date',
+            'notes'                          => 'nullable|string',
+            'items'                          => 'required|array|min:1',
             'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id',
-            'items.*.product_id'        => 'required|exists:products,id',
-            'items.*.lot_number'        => 'required|string',
-            'items.*.expiry_date'       => 'required|date|after:today',
-            'items.*.quantity_received' => 'required|integer|min:1',
-            'items.*.unit_cost'         => 'required|numeric|min:0',
+            'items.*.product_id'             => 'required|exists:products,id',
+            'items.*.lot_number'             => 'required|string',
+            'items.*.expiry_date'            => 'required|date|after:today',
+            'items.*.quantity_received'      => 'required|integer|min:1',
+            'items.*.unit_cost'              => 'required|numeric|min:0',
         ]);
 
-        // Can't receive cancelled PO
         if ($purchaseOrder->status === 'cancelled') {
             return response()->json([
                 'message' => 'Cannot receive a cancelled Purchase Order'
@@ -51,7 +53,6 @@ class PurchaseOrderReceiptController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create Receipt
             $receipt = PurchaseOrderReceipt::create([
                 'purchase_order_id' => $purchaseOrder->id,
                 'received_by'       => auth()->id(),
@@ -61,7 +62,6 @@ class PurchaseOrderReceiptController extends Controller
             ]);
 
             foreach ($request->items as $item) {
-                // Create Receipt Item
                 $receiptItem = PurchaseOrderReceiptItem::create([
                     'purchase_order_receipt_id' => $receipt->id,
                     'purchase_order_item_id'    => $item['purchase_order_item_id'],
@@ -72,7 +72,6 @@ class PurchaseOrderReceiptController extends Controller
                     'unit_cost'                 => $item['unit_cost'],
                 ]);
 
-                // Create Product Batch
                 $batch = ProductBatch::create([
                     'product_id'                     => $item['product_id'],
                     'purchase_order_receipt_item_id' => $receiptItem->id,
@@ -84,14 +83,10 @@ class PurchaseOrderReceiptController extends Controller
                     'status'                         => 'active',
                 ]);
 
-                // Update PO Item quantity received
                 $poItem = $purchaseOrder->items()->find($item['purchase_order_item_id']);
                 $poItem->increment('quantity_received', $item['quantity_received']);
-
-                // Update Product stock
                 $poItem->product->increment('stock', $item['quantity_received']);
 
-                // Create Inventory Log
                 $previousStock = $poItem->product->stock - $item['quantity_received'];
                 InventoryLog::create([
                     'product_id'       => $item['product_id'],
@@ -106,11 +101,17 @@ class PurchaseOrderReceiptController extends Controller
                 ]);
             }
 
-            // Update PO status
             $allReceived = $purchaseOrder->items->every(fn($i) => $i->isFullyReceived());
             $purchaseOrder->update([
                 'status' => $allReceived ? 'received' : 'partial'
             ]);
+
+            $this->logActivity(
+                action      : 'RECEIVE',
+                module      : 'Purchase Orders',
+                description : "Received delivery for PO: {$purchaseOrder->po_number} - Receipt: {$receipt->receipt_number} - Status: " . ($allReceived ? 'Fully Received' : 'Partial'),
+                newData     : $receipt->toArray()
+            );
 
             DB::commit();
 

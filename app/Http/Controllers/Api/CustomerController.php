@@ -7,36 +7,34 @@ use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
+    use LogsActivity;
+
     // Get all customers
     public function index(Request $request)
     {
         $query = Customer::query();
 
-        // Filter by status
         if ($request->status) {
             $query->where('status', $request->status);
         }
 
-        // Filter by city
         if ($request->city) {
             $query->where('city', $request->city);
         }
 
-        // Filter by province
         if ($request->province) {
             $query->where('province', $request->province);
         }
 
-        // Filter by specialization
         if ($request->specialization) {
             $query->where('specialization', $request->specialization);
         }
 
-        // Search by name or contact
         if ($request->search) {
             $query->where(function($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
@@ -49,7 +47,7 @@ class CustomerController extends Controller
         $customers = $query->latest()->paginate(10);
 
         return response()->json([
-            'customers' => CustomerResource::collection($customers),
+            'customers'  => CustomerResource::collection($customers),
             'pagination' => [
                 'total'        => $customers->total(),
                 'per_page'     => $customers->perPage(),
@@ -59,8 +57,6 @@ class CustomerController extends Controller
                 'to'           => $customers->lastItem(),
             ]
         ], 200);
-
-
     }
 
     // Get single customer
@@ -76,6 +72,13 @@ class CustomerController extends Controller
     {
         $customer = Customer::create($request->validated());
 
+        $this->logActivity(
+            action      : 'CREATE',
+            module      : 'Customers',
+            description : "Created customer: {$customer->name}",
+            newData     : $customer->toArray()
+        );
+
         return response()->json([
             'message'  => 'Customer created successfully',
             'customer' => new CustomerResource($customer)
@@ -85,7 +88,16 @@ class CustomerController extends Controller
     // Update customer
     public function update(UpdateCustomerRequest $request, Customer $customer)
     {
+        $oldData = $customer->toArray();
         $customer->update($request->validated());
+
+        $this->logActivity(
+            action      : 'UPDATE',
+            module      : 'Customers',
+            description : "Updated customer: {$customer->name}",
+            oldData     : $oldData,
+            newData     : $customer->fresh()->toArray()
+        );
 
         return response()->json([
             'message'  => 'Customer updated successfully',
@@ -96,6 +108,13 @@ class CustomerController extends Controller
     // Delete customer
     public function destroy(Customer $customer)
     {
+        $this->logActivity(
+            action      : 'DELETE',
+            module      : 'Customers',
+            description : "Deleted customer: {$customer->name}",
+            oldData     : $customer->toArray()
+        );
+
         $customer->delete();
 
         return response()->json([

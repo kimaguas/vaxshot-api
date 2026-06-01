@@ -7,21 +7,22 @@ use App\Http\Requests\StoreSupplierRequest;
 use App\Http\Requests\UpdateSupplierRequest;
 use App\Http\Resources\SupplierResource;
 use App\Models\Supplier;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
+    use LogsActivity;
+
     // Get all suppliers
     public function index(Request $request)
     {
         $query = Supplier::withCount('products');
 
-        // Filter by status
         if ($request->status) {
             $query->where('status', $request->status);
         }
 
-        // Search by company or contact person
         if ($request->search) {
             $query->where(function($q) use ($request) {
                 $q->where('company', 'like', "%{$request->search}%")
@@ -30,10 +31,10 @@ class SupplierController extends Controller
             });
         }
 
-       $suppliers = $query->latest()->paginate(10);
+        $suppliers = $query->latest()->paginate(10);
 
         return response()->json([
-            'suppliers' => SupplierResource::collection($suppliers),
+            'suppliers'  => SupplierResource::collection($suppliers),
             'pagination' => [
                 'total'        => $suppliers->total(),
                 'per_page'     => $suppliers->perPage(),
@@ -43,8 +44,6 @@ class SupplierController extends Controller
                 'to'           => $suppliers->lastItem(),
             ]
         ], 200);
-
-
     }
 
     // Get single supplier
@@ -60,6 +59,13 @@ class SupplierController extends Controller
     {
         $supplier = Supplier::create($request->validated());
 
+        $this->logActivity(
+            action      : 'CREATE',
+            module      : 'Suppliers',
+            description : "Created supplier: {$supplier->company}",
+            newData     : $supplier->toArray()
+        );
+
         return response()->json([
             'message'  => 'Supplier created successfully',
             'supplier' => new SupplierResource($supplier)
@@ -69,7 +75,16 @@ class SupplierController extends Controller
     // Update supplier
     public function update(UpdateSupplierRequest $request, Supplier $supplier)
     {
+        $oldData = $supplier->toArray();
         $supplier->update($request->validated());
+
+        $this->logActivity(
+            action      : 'UPDATE',
+            module      : 'Suppliers',
+            description : "Updated supplier: {$supplier->company}",
+            oldData     : $oldData,
+            newData     : $supplier->fresh()->toArray()
+        );
 
         return response()->json([
             'message'  => 'Supplier updated successfully',
@@ -80,6 +95,13 @@ class SupplierController extends Controller
     // Delete supplier
     public function destroy(Supplier $supplier)
     {
+        $this->logActivity(
+            action      : 'DELETE',
+            module      : 'Suppliers',
+            description : "Deleted supplier: {$supplier->company}",
+            oldData     : $supplier->toArray()
+        );
+
         $supplier->delete();
 
         return response()->json([

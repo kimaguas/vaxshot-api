@@ -6,32 +6,31 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PurchaseOrderResource;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderController extends Controller
 {
+    use LogsActivity;
+
     // Get all purchase orders
     public function index(Request $request)
     {
         $query = PurchaseOrder::with(['supplier', 'createdBy', 'items.product']);
 
-        // Filter by status
         if ($request->status) {
             $query->where('status', $request->status);
         }
 
-        // Filter by supplier
         if ($request->supplier_id) {
             $query->where('supplier_id', $request->supplier_id);
         }
 
-        // Filter by date range
         if ($request->from && $request->to) {
             $query->whereBetween('order_date', [$request->from, $request->to]);
         }
 
-        // Search by PO number
         if ($request->search) {
             $query->where('po_number', 'like', "%{$request->search}%");
         }
@@ -40,7 +39,7 @@ class PurchaseOrderController extends Controller
 
         return response()->json([
             'purchase_orders' => PurchaseOrderResource::collection($orders),
-            'pagination' => [
+            'pagination'      => [
                 'total'        => $orders->total(),
                 'per_page'     => $orders->perPage(),
                 'current_page' => $orders->currentPage(),
@@ -49,8 +48,6 @@ class PurchaseOrderController extends Controller
                 'to'           => $orders->lastItem(),
             ]
         ], 200);
-
-
     }
 
     // Get single purchase order
@@ -67,19 +64,18 @@ class PurchaseOrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'supplier_id'             => 'required|exists:suppliers,id',
-            'order_date'              => 'required|date',
-            'expected_delivery_date'  => 'nullable|date|after_or_equal:order_date',
-            'notes'                   => 'nullable|string',
-            'items'                   => 'required|array|min:1',
-            'items.*.product_id'      => 'required|exists:products,id',
-            'items.*.quantity_ordered'=> 'required|integer|min:1',
-            'items.*.unit_cost'       => 'required|numeric|min:0',
+            'supplier_id'              => 'required|exists:suppliers,id',
+            'order_date'               => 'required|date',
+            'expected_delivery_date'   => 'nullable|date|after_or_equal:order_date',
+            'notes'                    => 'nullable|string',
+            'items'                    => 'required|array|min:1',
+            'items.*.product_id'       => 'required|exists:products,id',
+            'items.*.quantity_ordered' => 'required|integer|min:1',
+            'items.*.unit_cost'        => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
         try {
-            // Create PO
             $po = PurchaseOrder::create([
                 'supplier_id'            => $request->supplier_id,
                 'created_by'             => auth()->id(),
@@ -89,7 +85,6 @@ class PurchaseOrderController extends Controller
                 'status'                 => 'draft',
             ]);
 
-            // Create PO Items
             foreach ($request->items as $item) {
                 PurchaseOrderItem::create([
                     'purchase_order_id' => $po->id,
@@ -100,6 +95,15 @@ class PurchaseOrderController extends Controller
                     'total_cost'        => $item['quantity_ordered'] * $item['unit_cost'],
                 ]);
             }
+
+            $po->load('supplier');
+
+            $this->logActivity(
+                action      : 'CREATE',
+                module      : 'Purchase Orders',
+                description : "Created PO: {$po->po_number} from {$po->supplier->company} - ₱{$po->total_amount}",
+                newData     : $po->toArray()
+            );
 
             DB::commit();
 
@@ -125,14 +129,20 @@ class PurchaseOrderController extends Controller
             'notes'  => 'nullable|string',
         ]);
 
-        // Can't update if already received
         if (in_array($purchaseOrder->status, ['received', 'cancelled'])) {
             return response()->json([
                 'message' => 'Cannot update a received or cancelled Purchase Order'
             ], 422);
         }
 
+        $oldStatus = $purchaseOrder->status;
         $purchaseOrder->update($request->only('status', 'notes'));
+
+        $this->logActivity(
+            action      : 'UPDATE',
+            module      : 'Purchase Orders',
+            description : "Updated PO: {$purchaseOrder->po_number} status from {$oldStatus} to {$purchaseOrder->status}",
+        );
 
         return response()->json([
             'message'        => 'Purchase Order updated successfully',
@@ -148,6 +158,13 @@ class PurchaseOrderController extends Controller
                 'message' => 'Only draft Purchase Orders can be deleted'
             ], 422);
         }
+
+        $this->logActivity(
+            action      : 'DELETE',
+            module      : 'Purchase Orders',
+            description : "Deleted PO: {$purchaseOrder->po_number}",
+            oldData     : $purchaseOrder->toArray()
+        );
 
         $purchaseOrder->items()->delete();
         $purchaseOrder->delete();

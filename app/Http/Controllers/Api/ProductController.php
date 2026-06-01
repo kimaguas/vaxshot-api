@@ -5,26 +5,30 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
+    use LogsActivity;
+
     // Get all products
     public function index(Request $request)
     {
         $query = Product::with('supplier');
 
-        // Filter by status
         if ($request->status) {
             $query->where('status', $request->status);
         }
 
-        // Filter low stock
+        if ($request->supplier_id) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
         if ($request->low_stock) {
             $query->lowStock();
         }
 
-        // Search by brand name or product code
         if ($request->search) {
             $query->where(function($q) use ($request) {
                 $q->where('brand_name', 'like', "%{$request->search}%")
@@ -35,7 +39,7 @@ class ProductController extends Controller
         $products = $query->latest()->paginate(10);
 
         return response()->json([
-            'products' => ProductResource::collection($products),
+            'products'   => ProductResource::collection($products),
             'pagination' => [
                 'total'        => $products->total(),
                 'per_page'     => $products->perPage(),
@@ -45,9 +49,6 @@ class ProductController extends Controller
                 'to'           => $products->lastItem(),
             ]
         ], 200);
-
-
-
     }
 
     // Get single product
@@ -73,7 +74,19 @@ class ProductController extends Controller
             'status'           => 'in:active,inactive',
         ]);
 
-        $product = Product::create($request->all());
+        $data = $request->all();
+        if (empty($data['supplier_id'])) {
+            $data['supplier_id'] = null;
+        }
+
+        $product = Product::create($data);
+
+        $this->logActivity(
+            action      : 'CREATE',
+            module      : 'Products',
+            description : "Created product: {$product->brand_name} ({$product->product_code})",
+            newData     : $product->toArray()
+        );
 
         return response()->json([
             'message' => 'Product created successfully',
@@ -96,7 +109,22 @@ class ProductController extends Controller
             'status'           => 'sometimes|in:active,inactive',
         ]);
 
-        $product->update($request->all());
+        $oldData = $product->toArray();
+
+        $data = $request->all();
+        if (empty($data['supplier_id'])) {
+            $data['supplier_id'] = null;
+        }
+
+        $product->update($data);
+
+        $this->logActivity(
+            action      : 'UPDATE',
+            module      : 'Products',
+            description : "Updated product: {$product->brand_name} ({$product->product_code})",
+            oldData     : $oldData,
+            newData     : $product->fresh()->toArray()
+        );
 
         return response()->json([
             'message' => 'Product updated successfully',
@@ -107,6 +135,13 @@ class ProductController extends Controller
     // Delete product
     public function destroy(Product $product)
     {
+        $this->logActivity(
+            action      : 'DELETE',
+            module      : 'Products',
+            description : "Deleted product: {$product->brand_name} ({$product->product_code})",
+            oldData     : $product->toArray()
+        );
+
         $product->delete();
 
         return response()->json([

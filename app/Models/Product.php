@@ -62,7 +62,7 @@ class Product extends Model
     // Check if low stock
     public function isLowStock(): bool
     {
-        return $this->total_stock <= $this->maintaining_stock;
+        return $this->stock <= $this->maintaining_stock;
     }
 
     // Scopes

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SalePaymentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ActivityLogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Users (admin only)
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('users', UserController::class);
+        Route::get('activity-logs', [ActivityLogController::class, 'index']);
     });
 
     // Main modules (admin, manager, staff)

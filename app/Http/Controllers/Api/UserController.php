@@ -7,18 +7,31 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    use LogsActivity;
+
     // Get all users
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('roles')->latest()->paginate(10);
+        $query = User::with('roles');
+
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                  ->orWhere('username', 'like', "%{$request->search}%")
+                  ->orWhere('email', 'like', "%{$request->search}%");
+            });
+        }
+
+        $users = $query->latest()->paginate(10);
 
         return response()->json([
-            'users' => UserResource::collection($users),
+            'users'      => UserResource::collection($users),
             'pagination' => [
                 'total'        => $users->total(),
                 'per_page'     => $users->perPage(),
@@ -50,6 +63,13 @@ class UserController extends Controller
 
         $user->assignRole($request->role);
 
+        $this->logActivity(
+            action      : 'CREATE',
+            module      : 'Users',
+            description : "Created user: {$user->name} (@{$user->username}) with role: {$request->role}",
+            newData     : ['name' => $user->name, 'username' => $user->username, 'email' => $user->email, 'role' => $request->role]
+        );
+
         return response()->json([
             'message' => 'User created successfully',
             'user'    => new UserResource($user)
@@ -59,6 +79,8 @@ class UserController extends Controller
     // Update user
     public function update(UpdateUserRequest $request, User $user)
     {
+        $oldData = ['name' => $user->name, 'username' => $user->username, 'email' => $user->email, 'role' => $user->getRoleNames()->first()];
+
         $user->update([
             'name'     => $request->name     ?? $user->name,
             'username' => $request->username ?? $user->username,
@@ -72,6 +94,14 @@ class UserController extends Controller
             $user->syncRoles($request->role);
         }
 
+        $this->logActivity(
+            action      : 'UPDATE',
+            module      : 'Users',
+            description : "Updated user: {$user->name} (@{$user->username})",
+            oldData     : $oldData,
+            newData     : ['name' => $user->name, 'username' => $user->username, 'email' => $user->email, 'role' => $request->role ?? $oldData['role']]
+        );
+
         return response()->json([
             'message' => 'User updated successfully',
             'user'    => new UserResource($user)
@@ -81,6 +111,13 @@ class UserController extends Controller
     // Delete user
     public function destroy(User $user)
     {
+        $this->logActivity(
+            action      : 'DELETE',
+            module      : 'Users',
+            description : "Deleted user: {$user->name} (@{$user->username})",
+            oldData     : ['name' => $user->name, 'username' => $user->username, 'email' => $user->email]
+        );
+
         $user->tokens()->delete();
         $user->delete();
 

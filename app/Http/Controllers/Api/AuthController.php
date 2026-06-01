@@ -7,15 +7,17 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    use LogsActivity;
+
     // Login
     public function login(LoginRequest $request)
     {
-        // Try to find user by username or email
         $user = User::where('username', $request->login)
                     ->orWhere('email', $request->login)
                     ->first();
@@ -28,6 +30,13 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Log login
+        $this->logActivity(
+            action      : 'LOGIN',
+            module      : 'Auth',
+            description : "{$user->name} logged in",
+        );
+
         return response()->json([
             'message' => 'Login successful',
             'token'   => $token,
@@ -35,29 +44,16 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // Register (Admin only)
-    public function register(RegisterRequest $request)
-    {
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        $user->assignRole($request->role);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'User created successfully',
-            'token'   => $token,
-            'user'    => new UserResource($user),
-        ], 201);
-    }
-
     // Logout
     public function logout(Request $request)
     {
+        // Log logout before deleting token
+        $this->logActivity(
+            action      : 'LOGOUT',
+            module      : 'Auth',
+            description : "{$request->user()->name} logged out",
+        );
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

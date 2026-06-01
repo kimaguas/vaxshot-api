@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\SalePaymentResource;
 use App\Models\Sale;
 use App\Models\SalePayment;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SalePaymentController extends Controller
 {
+    use LogsActivity;
+
     // Get all payments for a sale
     public function index(Sale $sale)
     {
@@ -79,6 +82,14 @@ class SalePaymentController extends Controller
             // Update sale payment status
             $sale->load('payments');
             $sale->updatePaymentStatus();
+
+            // Log activity
+            $this->logActivity(
+                action      : 'PAYMENT',
+                module      : 'Sales',
+                description : "Recorded payment of ₱{$request->amount} for sale: {$sale->sale_number} - OR: {$request->or_number} - Method: {$request->payment_method}",
+                newData     : $payment->toArray()
+            );
 
             DB::commit();
 

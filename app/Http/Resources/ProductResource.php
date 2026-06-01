@@ -13,7 +13,7 @@ class ProductResource extends JsonResource
             'id'               => $this->id,
             'product_code'     => $this->product_code,
             'brand_name'       => $this->brand_name,
-            'supplier'         => $this->supplier?->name,
+            'supplier'         => $this->supplier?->company,
             'supplier_id'      => $this->supplier_id,
             'description'      => $this->description,
             'acquisition_cost' => $this->acquisition_cost,
