@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Users (admin only)
     Route::middleware('role:admin')->group(function () {
+        Route::get('users/list', [UserController::class, 'list']);
         Route::apiResource('users', UserController::class);
         Route::get('activity-logs', [ActivityLogController::class, 'index']);
     });

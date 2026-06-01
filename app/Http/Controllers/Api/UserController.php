@@ -15,6 +15,13 @@ class UserController extends Controller
 {
     use LogsActivity;
 
+    // Get all user names for dropdowns (no pagination)
+    public function list()
+    {
+        $users = User::orderBy('name')->get(['id', 'name']);
+        return response()->json(['users' => $users], 200);
+    }
+
     // Get all users
     public function index(Request $request)
     {
