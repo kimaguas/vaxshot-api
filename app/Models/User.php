@@ -17,6 +17,7 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
+        'expo_push_token',
     ];
 
     protected $hidden = [

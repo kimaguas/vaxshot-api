@@ -20,6 +20,12 @@ class CustomerResource extends JsonResource
             'contact_no'     => $this->contact_no,
             'specialization' => $this->specialization,
             'status'         => $this->status,
+            'area_code_id'   => $this->area_code_id,
+            'area_code'      => $this->whenLoaded('areaCode', fn() => [
+                'id'   => $this->areaCode->id,
+                'code' => $this->areaCode->code,
+                'name' => $this->areaCode->name,
+            ]),
             'created_at'     => $this->created_at->format('M d, Y'),
         ];
     }

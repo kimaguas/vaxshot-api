@@ -18,7 +18,9 @@ class StoreUserRequest extends FormRequest
             'username' => 'required|string|max:255|unique:users,username',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
-            'role'     => 'required|in:admin,manager,staff,viewer',
+            'role'          => 'required|in:admin,manager,staff,viewer',
+            'permissions'   => 'sometimes|array',
+            'permissions.*' => 'string|exists:permissions,name',
         ];
     }
 

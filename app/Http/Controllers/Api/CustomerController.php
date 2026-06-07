@@ -17,10 +17,14 @@ class CustomerController extends Controller
     // Get all customers
     public function index(Request $request)
     {
-        $query = Customer::query();
+        $query = Customer::with('areaCode');
 
         if ($request->status) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->area_code_id) {
+            $query->where('area_code_id', $request->area_code_id);
         }
 
         if ($request->city) {
@@ -63,7 +67,7 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         return response()->json([
-            'customer' => new CustomerResource($customer)
+            'customer' => new CustomerResource($customer->load('areaCode'))
         ], 200);
     }
 
@@ -81,7 +85,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'message'  => 'Customer created successfully',
-            'customer' => new CustomerResource($customer)
+            'customer' => new CustomerResource($customer->load('areaCode'))
         ], 201);
     }
 
@@ -101,7 +105,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'message'  => 'Customer updated successfully',
-            'customer' => new CustomerResource($customer)
+            'customer' => new CustomerResource($customer->load('areaCode'))
         ], 200);
     }
 

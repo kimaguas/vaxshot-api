@@ -12,6 +12,13 @@ class UpdateUserRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (empty($this->input('password'))) {
+            $this->replace($this->except(['password', 'password_confirmation']));
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -28,7 +35,9 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
             'password' => 'sometimes|string|min:6|confirmed',
-            'role'     => 'sometimes|in:admin,manager,staff,viewer',
+            'role'          => 'sometimes|in:admin,manager,staff,viewer',
+            'permissions'   => 'sometimes|array',
+            'permissions.*' => 'string|exists:permissions,name',
         ];
     }
 

@@ -9,70 +9,33 @@ class Product extends Model
 {
     use HasFactory;
 
+    protected $table = 'products';
+
     protected $fillable = [
-        'product_code',
-        'brand_name',
         'supplier_id',
-        'description',
+        'brand_name',
+        'lot_no',
+        'generic_name',
         'acquisition_cost',
-        'selling_price',
-        'stock',
-        'maintaining_stock',
+        'indication',
+        'expiry_date',
+        'effective_date',
+        'notes',
         'status',
     ];
 
     protected $casts = [
-        'acquisition_cost'  => 'decimal:2',
-        'selling_price'     => 'decimal:2',
-        'stock'             => 'integer',
-        'maintaining_stock' => 'integer',
+        'effective_date' => 'date',
+        'expiry_date'    => 'date',
     ];
 
-    // Relationships
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
     }
 
-    public function batches()
+    public function tiers()
     {
-        return $this->hasMany(ProductBatch::class);
-    }
-
-    public function activeBatches()
-    {
-        return $this->hasMany(ProductBatch::class)
-                    ->where('status', 'active')
-                    ->where('remaining_quantity', '>', 0)
-                    ->where('expiry_date', '>', now())
-                    ->orderBy('expiry_date', 'asc');
-    }
-
-    public function inventoryLogs()
-    {
-        return $this->hasMany(InventoryLog::class);
-    }
-
-    // Get total stock from all active batches
-    public function getTotalStockAttribute(): int
-    {
-        return $this->activeBatches->sum('remaining_quantity');
-    }
-
-    // Check if low stock
-    public function isLowStock(): bool
-    {
-        return $this->stock <= $this->maintaining_stock;
-    }
-
-    // Scopes
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
-
-    public function scopeLowStock($query)
-    {
-        return $query->whereColumn('stock', '<=', 'maintaining_stock');
+        return $this->hasMany(ProductTier::class, 'catalog_id')->orderBy('sort_order');
     }
 }

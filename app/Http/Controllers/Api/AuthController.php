@@ -68,4 +68,12 @@ class AuthController extends Controller
             'user' => new UserResource($request->user())
         ], 200);
     }
+
+    // Store Expo push token for the authenticated user
+    public function updatePushToken(Request $request)
+    {
+        $request->validate(['expo_push_token' => 'required|string|max:255']);
+        $request->user()->update(['expo_push_token' => $request->expo_push_token]);
+        return response()->json(['message' => 'Push token updated'], 200);
+    }
 }

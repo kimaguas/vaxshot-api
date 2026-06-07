@@ -36,10 +36,17 @@ class Sale extends Model
     protected static function boot()
     {
         parent::boot();
+
+        // Satisfy the NOT NULL constraint with a temporary unique value
         static::creating(function ($sale) {
-            $latest = static::latest()->first();
-            $number = $latest ? intval(substr($latest->sale_number, 3)) + 1 : 1;
-            $sale->sale_number = 'SI-' . str_pad($number, 5, '0', STR_PAD_LEFT);
+            $sale->sale_number = 'SI-TEMP-' . uniqid();
+        });
+
+        // Replace with the real number once we have the auto-increment ID
+        static::created(function ($sale) {
+            $sale->updateQuietly([
+                'sale_number' => 'SI-' . str_pad($sale->id, 5, '0', STR_PAD_LEFT),
+            ]);
         });
     }
 

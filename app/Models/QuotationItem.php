@@ -5,42 +5,35 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SaleItem extends Model
+class QuotationItem extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'sale_id',
+        'quotation_id',
         'product_id',
         'product_name',
-        'product_batch_id',
-        'lot_number',
-        'expiry_date',
+        'description',
         'quantity',
         'unit_price',
         'total_price',
+        'expiry_date',
     ];
 
     protected $casts = [
-        'expiry_date' => 'date',
         'unit_price'  => 'decimal:2',
         'total_price' => 'decimal:2',
         'quantity'    => 'integer',
+        'expiry_date' => 'date',
     ];
 
-    // Relationships
-    public function sale()
+    public function quotation()
     {
-        return $this->belongsTo(Sale::class);
+        return $this->belongsTo(Quotation::class);
     }
 
     public function product()
     {
         return $this->belongsTo(Product::class);
-    }
-
-    public function batch()
-    {
-        return $this->belongsTo(ProductBatch::class, 'product_batch_id');
     }
 }

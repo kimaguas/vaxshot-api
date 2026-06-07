@@ -18,6 +18,7 @@ class Customer extends Model
         'contact_no',
         'specialization',
         'status',
+        'area_code_id',
     ];
 
     // Full address accessor
@@ -37,7 +38,11 @@ class Customer extends Model
         return $this->hasMany(Sale::class);
     }*/
 
-    // Scope for active customers
+    public function areaCode()
+    {
+        return $this->belongsTo(AreaCode::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
