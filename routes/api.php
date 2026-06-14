@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AreaCodeController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\SaleDeliveryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -110,6 +111,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->post('sales/{sale}/confirm', [SaleController::class, 'confirm']);
     Route::middleware('permission:cancel_sales')
         ->post('sales/{sale}/cancel', [SaleController::class, 'cancel']);
+    Route::middleware('permission:view_deliveries')
+        ->get('sales/{sale}/deliveries', [SaleDeliveryController::class, 'index']);
+    Route::middleware('permission:manage_deliveries')
+        ->post('sales/{sale}/deliveries', [SaleDeliveryController::class, 'store']);
 
     // Quotations
     Route::middleware('permission:view_quotations')->group(function () {

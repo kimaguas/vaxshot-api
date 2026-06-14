@@ -53,6 +53,7 @@ class InventoryController extends Controller
             ->map(fn($b) => [
                 'id'                 => $b->id,
                 'lot_number'         => $b->lot_number,
+                'received_date'      => $b->created_at?->format('Y-m-d'),
                 'expiry_date'        => $b->expiry_date?->format('Y-m-d'),
                 'quantity'           => $b->quantity,
                 'remaining_quantity' => $b->remaining_quantity,

@@ -21,6 +21,10 @@ class ProductController extends Controller
     {
         $query = Product::with(['supplier', 'tiers']);
 
+        if ($request->product_id) {
+            $query->where('id', $request->product_id);
+        }
+
         if ($request->supplier_id) {
             $query->where('supplier_id', $request->supplier_id);
         }

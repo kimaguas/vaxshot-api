@@ -22,6 +22,7 @@ class Sale extends Model
         'amount_paid',
         'balance',
         'status',
+        'delivery_status',
         'notes',
     ];
 
@@ -69,6 +70,11 @@ class Sale extends Model
     public function payments()
     {
         return $this->hasMany(SalePayment::class);
+    }
+
+    public function deliveries()
+    {
+        return $this->hasMany(SaleDelivery::class);
     }
 
     // Update payment status
