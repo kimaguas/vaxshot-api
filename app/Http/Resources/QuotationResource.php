@@ -20,7 +20,6 @@ class QuotationResource extends JsonResource
             'emails'           => $this->emails ?? ($this->email ? [$this->email] : []),
             'cc_emails'        => $this->cc_emails ?? [],
             'quotation_date'   => $this->quotation_date?->format('Y-m-d'),
-            'valid_until'      => $this->valid_until?->format('Y-m-d'),
             'total_amount'     => $this->total_amount,
             'status'           => $this->status,
             'notes'            => $this->notes,

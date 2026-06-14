@@ -22,7 +22,6 @@ class StoreQuotationRequest extends FormRequest
             'cc_emails'          => 'nullable|array',
             'cc_emails.*'        => 'email|max:255',
             'quotation_date'     => 'required|date',
-            'valid_until'        => 'nullable|date|after_or_equal:quotation_date',
             'notes'              => 'nullable|string',
             'items'              => 'required|array|min:1',
             'items.*.product_id'   => 'required|exists:products,id',

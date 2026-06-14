@@ -67,7 +67,6 @@ class QuotationController extends Controller
                 'emails'         => $request->emails,
                 'cc_emails'      => $request->cc_emails ?? [],
                 'quotation_date' => $request->quotation_date,
-                'valid_until'    => $request->valid_until,
                 'total_amount'   => 0,
                 'status'         => 'draft',
                 'notes'          => $request->notes,
@@ -131,7 +130,6 @@ class QuotationController extends Controller
             'cc_emails'            => 'nullable|array',
             'cc_emails.*'          => 'email|max:255',
             'quotation_date'       => 'sometimes|required|date',
-            'valid_until'          => 'nullable|date',
             'notes'                => 'nullable|string',
             'items'                => 'sometimes|array|min:1',
             'items.*.product_id'   => 'required_with:items|exists:products,id',
@@ -147,7 +145,7 @@ class QuotationController extends Controller
                 'customer_name', 'contact_name', 'address', 'emails', 'cc_emails', 'notes', 'total_amount',
             ]);
 
-            $updateData = $request->only(['customer_name', 'contact_name', 'address', 'quotation_date', 'valid_until', 'notes']);
+            $updateData = $request->only(['customer_name', 'contact_name', 'address', 'quotation_date', 'notes']);
             if ($request->has('emails')) {
                 $updateData['emails'] = $request->emails;
                 $updateData['email']  = $request->emails[0];

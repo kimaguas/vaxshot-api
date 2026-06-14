@@ -21,21 +21,33 @@ class ProductImport implements ToCollection, WithHeadingRow
     }
 
     /**
-     * Expected columns: brand_name, generic_name, tier_label, price, effective_date (optional)
-     * Rows with the same brand_name are grouped into one product entry with multiple tiers.
+     * Expected columns (one row per tier):
+     *   brand_name*    — product name; rows with the same brand_name share one product
+     *   min_qty*       — minimum quantity for this tier (integer)
+     *   price*         — price for this tier
+     *   max_qty        — maximum quantity (leave blank for unlimited last tier)
+     *   indication     — vaccine type / indication (first row of each product)
+     *   lot_no         — lot number
+     *   acquisition_cost
+     *   expiry_date    — YYYY-MM-DD
+     *   effective_date — YYYY-MM-DD (price list date)
      */
     public function collection(Collection $rows)
     {
         $grouped = [];
 
         foreach ($rows as $index => $row) {
-            $brandName   = trim($row['brand_name'] ?? '');
-            $genericName = trim($row['generic_name'] ?? '');
-            $tierLabel   = trim($row['tier_label'] ?? '');
-            $price       = $row['price'] ?? null;
+            $brandName = trim($row['brand_name'] ?? '');
+            $minQty    = $row['min_qty'] ?? null;
+            $price     = $row['price']   ?? null;
 
-            if (!$brandName || !$tierLabel || $price === null) {
-                $this->errors[] = "Row " . ($index + 2) . ": brand_name, tier_label, and price are required";
+            if (!$brandName || $minQty === null || $price === null) {
+                $this->errors[] = "Row " . ($index + 2) . ": brand_name, min_qty, and price are required";
+                continue;
+            }
+
+            if (!is_numeric($minQty) || (int) $minQty < 1) {
+                $this->errors[] = "Row " . ($index + 2) . ": min_qty must be a positive integer";
                 continue;
             }
 
@@ -44,16 +56,29 @@ class ProductImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
+            $maxQty = isset($row['max_qty']) && $row['max_qty'] !== '' && $row['max_qty'] !== null
+                ? (int) $row['max_qty']
+                : null;
+
+            $tierLabel = $maxQty !== null
+                ? "{$minQty}-{$maxQty}vls"
+                : (int) $minQty . "vls & up";
+
             if (!isset($grouped[$brandName])) {
                 $grouped[$brandName] = [
-                    'brand_name'     => $brandName,
-                    'generic_name'   => $genericName ?: $brandName,
-                    'effective_date' => $row['effective_date'] ?? null,
-                    'tiers'          => [],
+                    'brand_name'       => $brandName,
+                    'indication'       => trim($row['indication']       ?? ''),
+                    'lot_no'           => trim($row['lot_no']           ?? ''),
+                    'acquisition_cost' => is_numeric($row['acquisition_cost'] ?? null) ? (float) $row['acquisition_cost'] : null,
+                    'expiry_date'      => $row['expiry_date']      ?? null,
+                    'effective_date'   => $row['effective_date']   ?? null,
+                    'tiers'            => [],
                 ];
             }
 
             $grouped[$brandName]['tiers'][] = [
+                'min_qty'    => (int) $minQty,
+                'max_qty'    => $maxQty,
                 'tier_label' => $tierLabel,
                 'price'      => (float) $price,
             ];
@@ -63,17 +88,22 @@ class ProductImport implements ToCollection, WithHeadingRow
         try {
             foreach ($grouped as $entry) {
                 $product = Product::create([
-                    'supplier_id'    => $this->supplierId,
-                    'brand_name'     => $entry['brand_name'],
-                    'generic_name'   => $entry['generic_name'],
-                    'effective_date' => $entry['effective_date'] ?: null,
-                    'status'         => 'active',
+                    'supplier_id'      => $this->supplierId,
+                    'brand_name'       => $entry['brand_name'],
+                    'indication'       => $entry['indication']       ?: null,
+                    'lot_no'           => $entry['lot_no']           ?: null,
+                    'acquisition_cost' => $entry['acquisition_cost'],
+                    'expiry_date'      => $entry['expiry_date']      ?: null,
+                    'effective_date'   => $entry['effective_date']   ?: null,
+                    'status'           => 'active',
                 ]);
 
                 foreach ($entry['tiers'] as $sortOrder => $tier) {
                     ProductTier::create([
                         'catalog_id'  => $product->id,
                         'tier_label'  => $tier['tier_label'],
+                        'min_qty'     => $tier['min_qty'],
+                        'max_qty'     => $tier['max_qty'],
                         'price'       => $tier['price'],
                         'sort_order'  => $sortOrder,
                     ]);

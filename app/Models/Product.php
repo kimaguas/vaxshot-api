@@ -22,11 +22,15 @@ class Product extends Model
         'effective_date',
         'notes',
         'status',
+        'stock',
+        'maintaining_stock',
     ];
 
     protected $casts = [
-        'effective_date' => 'date',
-        'expiry_date'    => 'date',
+        'effective_date'   => 'date',
+        'expiry_date'      => 'date',
+        'stock'            => 'integer',
+        'maintaining_stock'=> 'integer',
     ];
 
     public function supplier()
@@ -37,5 +41,10 @@ class Product extends Model
     public function tiers()
     {
         return $this->hasMany(ProductTier::class, 'catalog_id')->orderBy('sort_order');
+    }
+
+    public function batches()
+    {
+        return $this->hasMany(ProductBatch::class);
     }
 }

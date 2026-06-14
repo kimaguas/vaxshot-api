@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AreaCodeController;
+use App\Http\Controllers\Api\InventoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -170,6 +171,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ->put('area-codes/{areaCode}', [AreaCodeController::class, 'update']);
     Route::middleware('permission:delete_area_codes')
         ->delete('area-codes/{areaCode}', [AreaCodeController::class, 'destroy']);
+
+    // Inventory
+    Route::middleware('permission:view_inventory')->group(function () {
+        Route::get('inventory/stats',   [InventoryController::class, 'stats']);
+        Route::get('inventory/batches', [InventoryController::class, 'batches']);
+    });
+    Route::middleware('permission:adjust_inventory')
+        ->post('inventory/adjustments', [InventoryController::class, 'adjust']);
 
     // Activity Logs
     Route::middleware('permission:view_activity_logs')

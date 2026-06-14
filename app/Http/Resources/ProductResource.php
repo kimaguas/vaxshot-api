@@ -24,7 +24,9 @@ class ProductResource extends JsonResource
             'expiry_date'    => $this->expiry_date?->format('Y-m-d'),
             'effective_date' => $this->effective_date?->format('Y-m-d'),
             'notes'          => $this->notes,
-            'status'         => $this->status,
+            'status'           => $this->status,
+            'stock'            => (int) ($this->stock ?? 0),
+            'maintaining_stock'=> (int) ($this->maintaining_stock ?? 0),
             'tiers'          => $this->whenLoaded('tiers', fn() =>
                 $this->tiers->map(fn($tier) => [
                     'id'         => $tier->id,
