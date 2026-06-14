@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PurchaseOrderReceiptController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SalePaymentController;
 use App\Http\Controllers\Api\QuotationController;
+use App\Http\Controllers\Api\QuotationTemplateController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AreaCodeController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\SaleDeliveryController;
+use App\Http\Controllers\Api\ImageUploadController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +42,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me',           [AuthController::class, 'me']);
         Route::patch('/push-token', [AuthController::class, 'updatePushToken']);
     });
+
+    // Image upload (for email headers etc.)
+    Route::post('upload-image', [ImageUploadController::class, 'store']);
 
     // Dashboard
     Route::middleware('permission:view_dashboard')
@@ -129,6 +134,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ->delete('quotations/{quotation}', [QuotationController::class, 'destroy']);
     Route::middleware('permission:send_quotations')
         ->post('quotations/{quotation}/send', [QuotationController::class, 'send']);
+
+    // Quotation Templates
+    Route::middleware('permission:create_quotations')->group(function () {
+        Route::get('quotation-templates',                       [QuotationTemplateController::class, 'index']);
+        Route::post('quotation-templates',                      [QuotationTemplateController::class, 'store']);
+        Route::put('quotation-templates/{template}',            [QuotationTemplateController::class, 'update']);
+        Route::delete('quotation-templates/{template}',         [QuotationTemplateController::class, 'destroy']);
+    });
 
     // Email Templates
     Route::middleware('permission:view_email_templates')

@@ -33,6 +33,11 @@ class Product extends Model
         'maintaining_stock'=> 'integer',
     ];
 
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);

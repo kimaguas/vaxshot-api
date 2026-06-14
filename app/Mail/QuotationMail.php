@@ -20,6 +20,7 @@ class QuotationMail extends Mailable
         public ?string $resolvedSubject   = null,
         public ?string $resolvedBody      = null,
         public ?string $resolvedSignature = null,
+        public ?string $resolvedHeader    = null,
     ) {}
 
     public function envelope(): Envelope
@@ -43,6 +44,7 @@ class QuotationMail extends Mailable
             'quotation'         => $this->quotation,
             'resolvedBody'      => $this->resolvedBody,
             'resolvedSignature' => $this->resolvedSignature,
+            'resolvedHeader'    => $this->resolvedHeader,
         ])->setPaper('a4', 'portrait');
 
         return [

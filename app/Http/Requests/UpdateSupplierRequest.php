@@ -1,23 +1,34 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Requests;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class SupplierResource extends JsonResource
+class UpdateSupplierRequest extends FormRequest
 {
-    public function toArray(Request $request): array
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
     {
         return [
-            'id'             => $this->id,
-            'tin_no'         => $this->tin_no,
-            'company'        => $this->company,
-            'address'        => $this->address,
-            'contact_person' => $this->contact_person,
-            'contact_no'     => $this->contact_no,
-            'status'         => $this->status,
-            'created_at'     => $this->created_at->format('M d, Y'),
+            'tin_no'         => 'nullable|string|max:255',
+            'company'        => ['required', 'string', 'max:255', Rule::unique('suppliers', 'company')->ignore($this->route('supplier'))],
+            'address'        => 'nullable|string',
+            'contact_person' => 'nullable|string|max:255',
+            'contact_no'     => 'nullable|string|max:255',
+            'status'         => 'in:active,inactive',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'company.required' => 'Company name is required',
+            'company.unique'   => 'A supplier with this company name already exists.',
         ];
     }
 }

@@ -14,6 +14,7 @@ use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class QuotationController extends Controller
@@ -50,7 +51,7 @@ class QuotationController extends Controller
     public function show(Quotation $quotation)
     {
         return response()->json([
-            'quotation' => new QuotationResource($quotation->load(['createdBy', 'items'])),
+            'quotation' => new QuotationResource($quotation->load(['createdBy', 'items.product.tiers', 'items.product.supplier'])),
         ]);
     }
 
@@ -82,11 +83,11 @@ class QuotationController extends Controller
                     'quotation_id' => $quotation->id,
                     'product_id'   => $item['product_id'],
                     'product_name' => $product->brand_name,
-                    'description'  => $item['description'] ?? null,
+                    'description'  => $product->indication,
                     'quantity'     => $item['quantity'],
                     'unit_price'   => $item['unit_price'],
                     'total_price'  => $totalPrice,
-                    'expiry_date'  => $item['expiry_date'] ?? null,
+                    'expiry_date'  => $product->expiry_date,
                 ]);
             }
 
@@ -166,11 +167,11 @@ class QuotationController extends Controller
                         'quotation_id' => $quotation->id,
                         'product_id'   => $item['product_id'],
                         'product_name' => $product->brand_name,
-                        'description'  => $item['description'] ?? null,
+                        'description'  => $product->indication,
                         'quantity'     => $item['quantity'],
                         'unit_price'   => $item['unit_price'],
                         'total_price'  => $totalPrice,
-                        'expiry_date'  => $item['expiry_date'] ?? null,
+                        'expiry_date'  => $product->expiry_date,
                     ]);
                 }
                 $quotation->update(['total_amount' => $total]);
@@ -224,6 +225,7 @@ class QuotationController extends Controller
         $resolvedSubject   = null;
         $resolvedBody      = null;
         $resolvedSignature = null;
+        $resolvedHeader    = null;
 
         if ($request->template_id) {
             $template = EmailTemplate::findOrFail($request->template_id);
@@ -236,16 +238,18 @@ class QuotationController extends Controller
             $resolvedSubject   = str_replace(array_keys($map), $map, $template->subject);
             $resolvedBody      = str_replace(array_keys($map), $map, $template->body);
             $resolvedSignature = $template->signature;
+            $resolvedHeader    = $template->header_html ?: null;
         }
 
         try {
             $recipients = $quotation->emails ?? [$quotation->email];
 
             $mailable = (new QuotationMail(
-                $quotation->load(['items', 'items.product.tiers']),
+                $quotation->load(['items', 'items.product.tiers', 'items.product.supplier']),
                 $resolvedSubject,
                 $resolvedBody,
-                $resolvedSignature
+                $resolvedSignature,
+                $resolvedHeader
             ))->to($recipients);
 
             if (!empty($quotation->cc_emails)) {

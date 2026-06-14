@@ -127,12 +127,16 @@
                  style="height: 60px; display: block; margin: 0 auto;">
         </div>
         @endif
-        <div class="company-name">VAXSHOT PHARMACEUTICAL PRODUCTS TRADING</div>
-        <div class="company-info">
-            #11 Heroes Ave. Kalayaan Village, City of San Fernando, Pampanga<br>
-            accounts@vaxshotcorp.com &bull; kimharoldaguas.vaxshot@gmail.com<br>
-            0968-408-8401 &bull; 045-860-1751
-        </div>
+        @if(!empty($resolvedHeader))
+            {!! $resolvedHeader !!}
+        @else
+            <div class="company-name">VAXSHOT PHARMACEUTICAL PRODUCTS TRADING</div>
+            <div class="company-info">
+                #11 Heroes Ave. Kalayaan Village, City of San Fernando, Pampanga<br>
+                accounts@vaxshotcorp.com &bull; kimharoldaguas.vaxshot@gmail.com<br>
+                0968-408-8401 &bull; 045-860-1751
+            </div>
+        @endif
     </div>
 
     <!-- Customer Info -->
@@ -149,7 +153,7 @@
     <!-- Body / Intro Text -->
     @if($resolvedBody)
         <div class="body-text">
-            {!! nl2br(e($resolvedBody)) !!}
+            {!! $resolvedBody !!}
         </div>
     @else
         <div class="body-text">
@@ -179,7 +183,16 @@
             @foreach($quotation->items as $item)
             <tr>
                 <td><strong>{{ $item->product_name }}</strong></td>
-                <td>{{ $item->description ?: '—' }}</td>
+                <td>
+                    @php
+                        $supplierName = $item->product?->supplier?->company;
+                        $indication   = $item->description ?: $item->product?->indication;
+                    @endphp
+                    @if($supplierName)
+                        <strong>{{ $supplierName }}/</strong><br>
+                    @endif
+                    {{ $indication ?: '—' }}
+                </td>
                 <td class="price-tiers">
                     @if($item->product && $item->product->tiers->count())
                         @foreach($item->product->tiers as $tier)
@@ -189,7 +202,10 @@
                         &#8369;{{ number_format($item->unit_price, 2) }}
                     @endif
                 </td>
-                <td>{{ $item->expiry_date ? $item->expiry_date->format('M Y') : '—' }}</td>
+                @php
+                    $expiryDate = $item->expiry_date ?? $item->product?->expiry_date;
+                @endphp
+                <td>{{ $expiryDate ? \Carbon\Carbon::parse($expiryDate)->format('M Y') : '—' }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -216,7 +232,7 @@
     <div class="signature-section">
         Best regards,<br><br>
         @if($resolvedSignature)
-            {!! nl2br(e($resolvedSignature)) !!}
+            {!! $resolvedSignature !!}
         @else
             <strong>Kim Harold Aguas</strong><br>
             Vaxshot Pharmaceutical Products Trading<br>

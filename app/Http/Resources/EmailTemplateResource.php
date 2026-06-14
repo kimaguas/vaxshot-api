@@ -16,8 +16,9 @@ class EmailTemplateResource extends JsonResource
             'subject'    => $this->subject,
             'body'       => $this->body,
             'signature'  => $this->signature,
-            'is_default' => $this->is_default,
-            'created_at' => $this->created_at->format('Y-m-d'),
+            'is_default'  => $this->is_default,
+            'header_html' => $this->header_html,
+            'created_at'  => $this->created_at->format('Y-m-d'),
         ];
     }
 }

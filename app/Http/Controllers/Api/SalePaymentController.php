@@ -37,6 +37,7 @@ class SalePaymentController extends Controller
             'or_number'        => 'nullable|string|max:255',
             'reference_number' => 'nullable|string|max:255',
             'notes'            => 'nullable|string',
+            'or_attachment'    => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:5120',
         ]);
 
         // Can only pay confirmed sales
@@ -62,11 +63,18 @@ class SalePaymentController extends Controller
 
         DB::beginTransaction();
         try {
+            // Handle OR attachment upload
+            $attachmentPath = null;
+            if ($request->hasFile('or_attachment')) {
+                $attachmentPath = $request->file('or_attachment')->store('or-attachments', 'public');
+            }
+
             // Create payment
             $payment = SalePayment::create([
                 'sale_id'          => $sale->id,
                 'received_by'      => auth()->id(),
                 'or_number'        => $request->or_number,
+                'or_attachment'    => $attachmentPath,
                 'amount'           => $request->amount,
                 'payment_method'   => $request->payment_method,
                 'payment_date'     => $request->payment_date,

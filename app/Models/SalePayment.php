@@ -13,6 +13,7 @@ class SalePayment extends Model
         'sale_id',
         'received_by',
         'or_number',
+        'or_attachment',
         'amount',
         'payment_method',
         'payment_date',

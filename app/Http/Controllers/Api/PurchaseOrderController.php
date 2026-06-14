@@ -124,29 +124,75 @@ class PurchaseOrderController extends Controller
     // Update PO status
     public function update(Request $request, PurchaseOrder $purchaseOrder)
     {
-        $request->validate([
-            'status' => 'required|in:draft,ordered,cancelled',
-            'notes'  => 'nullable|string',
-        ]);
-
         if (in_array($purchaseOrder->status, ['received', 'cancelled'])) {
             return response()->json([
                 'message' => 'Cannot update a received or cancelled Purchase Order'
             ], 422);
         }
 
-        $oldStatus = $purchaseOrder->status;
-        $purchaseOrder->update($request->only('status', 'notes'));
+        // Status-only update (confirm flow)
+        if ($request->has('status') && !$request->has('items')) {
+            $request->validate([
+                'status' => 'required|in:draft,ordered,cancelled',
+                'notes'  => 'nullable|string',
+            ]);
+
+            $oldStatus = $purchaseOrder->status;
+            $purchaseOrder->update($request->only('status', 'notes'));
+
+            $this->logActivity(
+                action      : 'UPDATE',
+                module      : 'Purchase Orders',
+                description : "Updated PO: {$purchaseOrder->po_number} status from {$oldStatus} to {$purchaseOrder->status}",
+            );
+
+            return response()->json([
+                'message'        => 'Purchase Order updated successfully',
+                'purchase_order' => new PurchaseOrderResource($purchaseOrder->load(['supplier', 'items.product']))
+            ], 200);
+        }
+
+        // Full edit (draft only)
+        if ($purchaseOrder->status !== 'draft') {
+            return response()->json(['message' => 'Only draft Purchase Orders can be edited'], 422);
+        }
+
+        $request->validate([
+            'expected_delivery_date'   => 'nullable|date',
+            'notes'                    => 'nullable|string',
+            'items'                    => 'required|array|min:1',
+            'items.*.id'               => 'required|exists:purchase_order_items,id',
+            'items.*.quantity_ordered' => 'required|integer|min:1',
+            'items.*.unit_cost'        => 'required|numeric|min:0',
+        ]);
+
+        $purchaseOrder->update($request->only('expected_delivery_date', 'notes'));
+
+        $totalCost = 0;
+        foreach ($request->items as $itemData) {
+            $item = $purchaseOrder->items()->find($itemData['id']);
+            if ($item) {
+                $total = $itemData['quantity_ordered'] * $itemData['unit_cost'];
+                $item->update([
+                    'quantity_ordered' => $itemData['quantity_ordered'],
+                    'unit_cost'        => $itemData['unit_cost'],
+                    'total_cost'       => $total,
+                ]);
+                $totalCost += $total;
+            }
+        }
+
+        $purchaseOrder->update(['total_amount' => $totalCost]);
 
         $this->logActivity(
             action      : 'UPDATE',
             module      : 'Purchase Orders',
-            description : "Updated PO: {$purchaseOrder->po_number} status from {$oldStatus} to {$purchaseOrder->status}",
+            description : "Edited draft PO: {$purchaseOrder->po_number}",
         );
 
         return response()->json([
             'message'        => 'Purchase Order updated successfully',
-            'purchase_order' => new PurchaseOrderResource($purchaseOrder)
+            'purchase_order' => new PurchaseOrderResource($purchaseOrder->load(['supplier', 'items.product']))
         ], 200);
     }
 

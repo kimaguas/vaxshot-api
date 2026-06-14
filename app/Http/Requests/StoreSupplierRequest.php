@@ -15,7 +15,7 @@ class StoreSupplierRequest extends FormRequest
     {
         return [
             'tin_no'         => 'nullable|string|max:255',
-            'company'        => 'required|string|max:255',
+            'company'        => 'required|string|max:255|unique:suppliers,company',
             'address'        => 'nullable|string',
             'contact_person' => 'nullable|string|max:255',
             'contact_no'     => 'nullable|string|max:255',
@@ -27,6 +27,7 @@ class StoreSupplierRequest extends FormRequest
     {
         return [
             'company.required' => 'Company name is required',
+            'company.unique'   => 'A supplier with this company name already exists.',
         ];
     }
 }

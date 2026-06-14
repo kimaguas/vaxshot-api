@@ -19,7 +19,8 @@ class StoreEmailTemplateRequest extends FormRequest
             'subject'    => 'required|string|max:500',
             'body'       => 'required|string',
             'signature'  => 'required|string',
-            'is_default' => 'nullable|boolean',
+            'is_default'  => 'nullable|boolean',
+            'header_html' => 'nullable|string',
         ];
     }
 }

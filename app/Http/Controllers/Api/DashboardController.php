@@ -4,12 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\ProductBatch;
-use App\Models\PurchaseOrder;
 use App\Models\Sale;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -97,10 +94,9 @@ class DashboardController extends Controller
             ->join('products', 'sale_items.product_id', '=', 'products.id')
             ->where('sales.status', 'confirmed')
             ->whereMonth('sales.sale_date', now()->month)
-            ->groupBy('sale_items.product_id', 'products.brand_name', 'products.product_code')
+            ->groupBy('sale_items.product_id', 'products.brand_name')
             ->select(
                 'products.brand_name',
-                'products.product_code',
                 DB::raw('SUM(sale_items.quantity) as total_quantity'),
                 DB::raw('SUM(sale_items.total_price) as total_amount')
             )

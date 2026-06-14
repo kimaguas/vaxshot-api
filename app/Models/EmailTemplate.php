@@ -16,6 +16,7 @@ class EmailTemplate extends Model
         'body',
         'signature',
         'is_default',
+        'header_html',
     ];
 
     protected $casts = [

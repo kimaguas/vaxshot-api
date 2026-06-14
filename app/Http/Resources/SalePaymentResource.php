@@ -18,8 +18,11 @@ class SalePaymentResource extends JsonResource
             'payment_date'     => $this->payment_date?->format('M d, Y'),
             'reference_number' => $this->reference_number,
             'received_by'      => $this->receivedBy?->name,
-            'notes'            => $this->notes,
-            'created_at'       => $this->created_at->format('M d, Y'),
+            'notes'               => $this->notes,
+            'or_attachment_url'   => $this->or_attachment
+                ? asset('storage/' . $this->or_attachment)
+                : null,
+            'created_at'          => $this->created_at->format('M d, Y'),
         ];
     }
 }
