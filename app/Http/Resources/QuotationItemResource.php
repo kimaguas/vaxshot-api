@@ -23,6 +23,7 @@ class QuotationItemResource extends JsonResource
             'total_price'  => $this->total_price,
             'expiry_date'  => $this->expiry_date?->format('Y-m-d')
                 ?: ($this->relationLoaded('product') ? $this->product?->expiry_date?->format('Y-m-d') : null),
+            'use_flat_price' => (bool) $this->use_flat_price,
             'tiers'        => $this->whenLoaded('product', function () {
                 return $this->product->tiers->map(fn($t) => [
                     'tier_label' => $t->tier_label,

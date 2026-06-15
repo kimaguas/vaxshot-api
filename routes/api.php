@@ -112,6 +112,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:edit_sales')
         ->put('sales/{sale}', [SaleController::class, 'update']);
+    Route::middleware('permission:edit_sales')
+        ->put('sales/{sale}/items', [SaleController::class, 'updateItems']);
     Route::middleware('permission:confirm_sales')
         ->post('sales/{sale}/confirm', [SaleController::class, 'confirm']);
     Route::middleware('permission:cancel_sales')

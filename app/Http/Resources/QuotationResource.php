@@ -22,6 +22,7 @@ class QuotationResource extends JsonResource
             'quotation_date'   => $this->quotation_date?->format('Y-m-d'),
             'total_amount'     => $this->total_amount,
             'status'           => $this->status,
+            'quotation_type'   => $this->quotation_type ?? 'pricing',
             'notes'            => $this->notes,
             'items'            => QuotationItemResource::collection($this->whenLoaded('items')),
             'items_count'      => $this->items_count ?? $this->whenLoaded('items', fn() => $this->items->count()),

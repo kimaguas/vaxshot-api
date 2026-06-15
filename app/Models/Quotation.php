@@ -22,6 +22,7 @@ class Quotation extends Model
         'valid_until',
         'total_amount',
         'status',
+        'quotation_type',
         'notes',
     ];
 

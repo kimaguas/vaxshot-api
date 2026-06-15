@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SaleResource;
-use App\Models\Sale;
+use App\Models\InventoryLog;
 use App\Models\Product;
+use App\Models\ProductBatch;
+use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
@@ -237,18 +239,168 @@ class SaleController extends Controller
             ], 422);
         }
 
-        $sale->update(['status' => 'confirmed']);
+        DB::beginTransaction();
+        try {
+            $items = $sale->items()->with('product')->get();
 
-        $this->logActivity(
-            action      : 'CONFIRM',
-            module      : 'Sales',
-            description : "Confirmed sale: {$sale->sale_number} for {$sale->customer->name} - ₱{$sale->total_amount}",
-        );
+            foreach ($items as $saleItem) {
+                $qtyNeeded = $saleItem->quantity;
+                $productId = $saleItem->product_id;
 
-        return response()->json([
-            'message' => 'Sale confirmed successfully',
-            'sale'    => new SaleResource($sale->load(['customer', 'items']))
-        ], 200);
+                $totalAvailable = ProductBatch::where('product_id', $productId)
+                    ->active()
+                    ->sum('remaining_quantity');
+
+                if ($totalAvailable < $qtyNeeded) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "Insufficient stock for \"{$saleItem->product_name}\". Available: {$totalAvailable}, Required: {$qtyNeeded}",
+                    ], 422);
+                }
+
+                // Deduct using FEFO (earliest expiry first)
+                $batches = ProductBatch::where('product_id', $productId)->FEFO()->get();
+
+                $remaining       = $qtyNeeded;
+                $firstBatchId    = null;
+                $firstBatchLot   = null;
+                $firstBatchExpiry = null;
+
+                foreach ($batches as $batch) {
+                    if ($remaining <= 0) break;
+
+                    $deduct       = min($batch->remaining_quantity, $remaining);
+                    $newRemaining = $batch->remaining_quantity - $deduct;
+
+                    $batch->update([
+                        'remaining_quantity' => $newRemaining,
+                        'status'             => $newRemaining <= 0 ? 'depleted' : 'active',
+                    ]);
+
+                    if ($firstBatchId === null) {
+                        $firstBatchId     = $batch->id;
+                        $firstBatchLot    = $batch->lot_number;
+                        $firstBatchExpiry = $batch->expiry_date;
+                    }
+
+                    $remaining -= $deduct;
+                }
+
+                $previousStock = (int) ($saleItem->product->stock ?? $totalAvailable);
+
+                $newStock = (int) ProductBatch::where('product_id', $productId)
+                    ->where('status', '!=', 'depleted')
+                    ->sum('remaining_quantity');
+
+                Product::where('id', $productId)->update(['stock' => $newStock]);
+
+                $saleItem->update([
+                    'product_batch_id' => $firstBatchId,
+                    'lot_number'       => $firstBatchLot,
+                    'expiry_date'      => $firstBatchExpiry,
+                ]);
+
+                InventoryLog::create([
+                    'product_id'       => $productId,
+                    'product_batch_id' => $firstBatchId,
+                    'created_by'       => Auth::id(),
+                    'type'             => 'sale',
+                    'quantity'         => -$qtyNeeded,
+                    'previous_stock'   => $previousStock,
+                    'new_stock'        => $newStock,
+                    'reference'        => $sale->sale_number,
+                    'remarks'          => "Sale confirmed: {$sale->sale_number}",
+                ]);
+            }
+
+            $sale->update(['status' => 'confirmed']);
+
+            $this->logActivity(
+                action      : 'CONFIRM',
+                module      : 'Sales',
+                description : "Confirmed sale: {$sale->sale_number} for {$sale->customer->name} - ₱{$sale->total_amount}",
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Sale confirmed successfully',
+                'sale'    => new SaleResource($sale->load(['customer', 'items']))
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to confirm sale: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Update items on a draft sale
+    public function updateItems(Request $request, Sale $sale)
+    {
+        if ($sale->status !== 'draft') {
+            return response()->json([
+                'message' => 'Items can only be edited on draft sales'
+            ], 422);
+        }
+
+        $request->validate([
+            'items'              => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity'   => 'required|integer|min:1',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $sale->items()->delete();
+
+            $totalAmount = 0;
+
+            foreach ($request->items as $item) {
+                $product     = Product::find($item['product_id']);
+                $totalPrice  = $item['quantity'] * $item['unit_price'];
+                $totalAmount += $totalPrice;
+
+                SaleItem::create([
+                    'sale_id'      => $sale->id,
+                    'product_id'   => $item['product_id'],
+                    'product_name' => $product?->brand_name,
+                    'lot_number'   => $product?->lot_no,
+                    'expiry_date'  => $product?->expiry_date,
+                    'quantity'     => $item['quantity'],
+                    'unit_price'   => $item['unit_price'],
+                    'total_price'  => $totalPrice,
+                ]);
+            }
+
+            $sale->update([
+                'total_amount' => $totalAmount,
+                'balance'      => $totalAmount - $sale->amount_paid,
+            ]);
+
+            $this->logActivity(
+                action      : 'UPDATE',
+                module      : 'Sales',
+                description : "Updated items for sale: {$sale->sale_number}",
+                newData     : ['total_amount' => $totalAmount]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Items updated successfully',
+                'sale'    => new SaleResource($sale->load(['customer', 'items']))
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to update items',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
     }
 
     // Cancel sale

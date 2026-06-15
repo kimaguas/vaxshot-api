@@ -72,10 +72,6 @@
             @endif
         </div>
 
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-        <p style="font-size: 11px; color: #9ca3af; margin: 0; text-align: center;">
-            This is an automated email. Please do not reply directly to this message.
-        </p>
     </div>
 </body>
 </html>

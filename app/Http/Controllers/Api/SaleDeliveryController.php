@@ -3,13 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\InventoryLog;
-use App\Models\Product;
-use App\Models\ProductBatch;
 use App\Models\Sale;
 use App\Models\SaleDelivery;
 use App\Models\SaleDeliveryItem;
-use App\Models\SaleItem;
 use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -144,35 +140,6 @@ class SaleDeliveryController extends Controller
                     'quantity_delivered' => $qtyToDeliver,
                 ]);
 
-                // Deduct inventory from the batch
-                if ($saleItem->product_batch_id) {
-                    $batch        = ProductBatch::findOrFail($saleItem->product_batch_id);
-                    $previousStock = (int) ($saleItem->product?->stock ?? 0);
-                    $newRemaining = $batch->remaining_quantity - $qtyToDeliver;
-
-                    $batch->update([
-                        'remaining_quantity' => $newRemaining,
-                        'status'             => $newRemaining <= 0 ? 'depleted' : 'active',
-                    ]);
-
-                    $newStock = (int) ProductBatch::where('product_id', $batch->product_id)
-                        ->where('status', '!=', 'depleted')
-                        ->sum('remaining_quantity');
-
-                    Product::where('id', $batch->product_id)->update(['stock' => $newStock]);
-
-                    InventoryLog::create([
-                        'product_id'       => $batch->product_id,
-                        'product_batch_id' => $batch->id,
-                        'created_by'       => Auth::id(),
-                        'type'             => 'sale',
-                        'quantity'         => -$qtyToDeliver,
-                        'previous_stock'   => $previousStock,
-                        'new_stock'        => $newStock,
-                        'reference'        => $delivery->delivery_number,
-                        'remarks'          => "Sale {$sale->sale_number}",
-                    ]);
-                }
             }
 
             // Update sale delivery_status

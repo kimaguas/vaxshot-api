@@ -18,13 +18,15 @@ class QuotationItem extends Model
         'unit_price',
         'total_price',
         'expiry_date',
+        'use_flat_price',
     ];
 
     protected $casts = [
-        'unit_price'  => 'decimal:2',
-        'total_price' => 'decimal:2',
-        'quantity'    => 'integer',
-        'expiry_date' => 'date',
+        'unit_price'    => 'decimal:2',
+        'total_price'   => 'decimal:2',
+        'quantity'      => 'integer',
+        'expiry_date'   => 'date',
+        'use_flat_price'=> 'boolean',
     ];
 
     public function quotation()

@@ -170,6 +170,52 @@
     @endif
 
     <!-- Product Table -->
+    @if(($quotation->quotation_type ?? 'pricing') === 'with_total')
+    {{-- Pricing with Total: Product Name | Indication | Price | Qty | Total --}}
+    <table class="items">
+        <thead>
+            <tr>
+                <th style="width: 26%;">Product Name</th>
+                <th style="width: 30%;">Indication</th>
+                <th style="width: 16%;" class="right">Unit Price</th>
+                <th style="width: 10%;" class="right">Qty</th>
+                <th style="width: 18%;" class="right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php $grandTotal = 0; @endphp
+            @foreach($quotation->items as $item)
+            @php
+                $supplierName = $item->product?->supplier?->company;
+                $indication   = $item->description ?: $item->product?->indication;
+                $expiryDate   = $item->expiry_date ?? $item->product?->expiry_date;
+                $lineTotal    = $item->unit_price * $item->quantity;
+                $grandTotal  += $lineTotal;
+            @endphp
+            <tr>
+                <td><strong>{{ $item->product_name }}</strong></td>
+                <td>
+                    @if($supplierName)
+                        <strong>{{ $supplierName }}/</strong><br>
+                    @endif
+                    {{ $indication ?: '—' }}
+                    @if($expiryDate)
+                        <br><span style="font-size:9px; color:#888;">Exp: {{ \Carbon\Carbon::parse($expiryDate)->format('M Y') }}</span>
+                    @endif
+                </td>
+                <td style="text-align:right;">&#8369;{{ number_format($item->unit_price, 2) }}</td>
+                <td style="text-align:right;">{{ number_format($item->quantity) }}</td>
+                <td style="text-align:right;"><strong>&#8369;{{ number_format($lineTotal, 2) }}</strong></td>
+            </tr>
+            @endforeach
+            <tr>
+                <td colspan="4" style="text-align:right; font-weight:bold; border-bottom:none; padding-top:10px;">TOTAL</td>
+                <td style="text-align:right; font-weight:bold; border-bottom:none; padding-top:10px;">&#8369;{{ number_format($grandTotal, 2) }}</td>
+            </tr>
+        </tbody>
+    </table>
+    @else
+    {{-- Pricing Only: Product Name | Indication | Price Tiers | Expiration Date --}}
     <table class="items">
         <thead>
             <tr>
@@ -194,7 +240,9 @@
                     {{ $indication ?: '—' }}
                 </td>
                 <td class="price-tiers">
-                    @if($item->product && $item->product->tiers->count())
+                    @if($item->use_flat_price)
+                        &#8369;{{ number_format($item->unit_price, 2) }}
+                    @elseif($item->product && $item->product->tiers->count())
                         @foreach($item->product->tiers as $tier)
                             {{ $tier->tier_label }}: &#8369;{{ number_format($tier->price, 2) }}<br>
                         @endforeach
@@ -210,6 +258,7 @@
             @endforeach
         </tbody>
     </table>
+    @endif
 
     @if(!$resolvedBody)
     <!-- Default Benefits Section -->
@@ -241,8 +290,7 @@
     </div>
 
     <div class="footer">
-        This is a computer-generated price quotation. &bull; {{ $quotation->quotation_number }} &bull;
-        {{ $quotation->quotation_date->format('F d, Y') }}
+        {{ $quotation->quotation_number }} &bull; {{ $quotation->quotation_date->format('F d, Y') }}
     </div>
 
 </body>

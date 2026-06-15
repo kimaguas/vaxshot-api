@@ -68,6 +68,7 @@ class QuotationController extends Controller
                 'emails'         => $request->emails,
                 'cc_emails'      => $request->cc_emails ?? [],
                 'quotation_date' => $request->quotation_date,
+                'quotation_type' => $request->quotation_type ?? 'pricing',
                 'total_amount'   => 0,
                 'status'         => 'draft',
                 'notes'          => $request->notes,
@@ -80,14 +81,15 @@ class QuotationController extends Controller
                 $total     += $totalPrice;
 
                 QuotationItem::create([
-                    'quotation_id' => $quotation->id,
-                    'product_id'   => $item['product_id'],
-                    'product_name' => $product->brand_name,
-                    'description'  => $product->indication,
-                    'quantity'     => $item['quantity'],
-                    'unit_price'   => $item['unit_price'],
-                    'total_price'  => $totalPrice,
-                    'expiry_date'  => $product->expiry_date,
+                    'quotation_id'  => $quotation->id,
+                    'product_id'    => $item['product_id'],
+                    'product_name'  => $product->brand_name,
+                    'description'   => $product->indication,
+                    'quantity'      => $item['quantity'],
+                    'unit_price'    => $item['unit_price'],
+                    'total_price'   => $totalPrice,
+                    'expiry_date'   => $product->expiry_date,
+                    'use_flat_price'=> !empty($item['use_flat_price']),
                 ]);
             }
 
@@ -131,6 +133,7 @@ class QuotationController extends Controller
             'cc_emails'            => 'nullable|array',
             'cc_emails.*'          => 'email|max:255',
             'quotation_date'       => 'sometimes|required|date',
+            'quotation_type'       => 'nullable|in:pricing,with_total',
             'notes'                => 'nullable|string',
             'items'                => 'sometimes|array|min:1',
             'items.*.product_id'   => 'required_with:items|exists:products,id',
@@ -146,7 +149,7 @@ class QuotationController extends Controller
                 'customer_name', 'contact_name', 'address', 'emails', 'cc_emails', 'notes', 'total_amount',
             ]);
 
-            $updateData = $request->only(['customer_name', 'contact_name', 'address', 'quotation_date', 'notes']);
+            $updateData = $request->only(['customer_name', 'contact_name', 'address', 'quotation_date', 'quotation_type', 'notes']);
             if ($request->has('emails')) {
                 $updateData['emails'] = $request->emails;
                 $updateData['email']  = $request->emails[0];
@@ -164,14 +167,15 @@ class QuotationController extends Controller
                     $totalPrice = $item['quantity'] * $item['unit_price'];
                     $total     += $totalPrice;
                     QuotationItem::create([
-                        'quotation_id' => $quotation->id,
-                        'product_id'   => $item['product_id'],
-                        'product_name' => $product->brand_name,
-                        'description'  => $product->indication,
-                        'quantity'     => $item['quantity'],
-                        'unit_price'   => $item['unit_price'],
-                        'total_price'  => $totalPrice,
-                        'expiry_date'  => $product->expiry_date,
+                        'quotation_id'  => $quotation->id,
+                        'product_id'    => $item['product_id'],
+                        'product_name'  => $product->brand_name,
+                        'description'   => $product->indication,
+                        'quantity'      => $item['quantity'],
+                        'unit_price'    => $item['unit_price'],
+                        'total_price'   => $totalPrice,
+                        'expiry_date'   => $product->expiry_date,
+                        'use_flat_price'=> !empty($item['use_flat_price']),
                     ]);
                 }
                 $quotation->update(['total_amount' => $total]);
