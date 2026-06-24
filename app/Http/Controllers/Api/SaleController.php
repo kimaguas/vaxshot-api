@@ -216,18 +216,20 @@ class SaleController extends Controller
             'or_number'      => 'nullable|string|max:255',
             'payment_method' => 'sometimes|in:cash,check,bank_transfer',
             'notes'          => 'nullable|string',
+            'area_code_id'   => 'nullable|exists:area_codes,id',
         ]);
 
-        $oldData = $sale->only(['invoice_number', 'or_number', 'payment_method', 'notes']);
+        $fields  = ['invoice_number', 'or_number', 'payment_method', 'notes', 'area_code_id'];
+        $oldData = $sale->only($fields);
 
-        $sale->update($request->only(['invoice_number', 'or_number', 'payment_method', 'notes']));
+        $sale->update($request->only($fields));
 
         $this->logActivity(
             action:      'UPDATE',
             module:      'Sales',
             description: "Updated details for sale: {$sale->sale_number}",
             oldData:     $oldData,
-            newData:     $sale->only(['invoice_number', 'or_number', 'payment_method', 'notes'])
+            newData:     $sale->only($fields)
         );
 
         return response()->json([
