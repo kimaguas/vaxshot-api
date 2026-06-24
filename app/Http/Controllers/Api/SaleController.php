@@ -34,17 +34,13 @@ class SaleController extends Controller
             }
 
             if ($request->area_code_id) {
-                $q->whereHas('customer', fn ($cq) =>
-                    $cq->where('area_code_id', $request->area_code_id)
-                );
+                $q->where('area_code_id', $request->area_code_id);
             }
 
             // Auto-enforce area code filter for Sales Rep users
             $authUser = auth()->user();
             if ($authUser && $authUser->hasRole('sales_rep') && $authUser->area_code_id) {
-                $q->whereHas('customer', fn ($cq) =>
-                    $cq->where('area_code_id', $authUser->area_code_id)
-                );
+                $q->where('area_code_id', $authUser->area_code_id);
             }
 
             // Date filters (mutually exclusive)
@@ -89,7 +85,7 @@ class SaleController extends Controller
                         : 'id';
         $sortOrder = $request->sort_order === 'asc' ? 'asc' : 'desc';
 
-        $query = Sale::with(['customer', 'createdBy', 'items'])->where($filters);
+        $query = Sale::with(['customer', 'createdBy', 'items', 'areaCode'])->where($filters);
 
         if ($sortBy === 'customer') {
             $query->join('customers', 'sales.customer_id', '=', 'customers.id')
@@ -135,6 +131,7 @@ class SaleController extends Controller
     {
         $request->validate([
             'customer_id'        => 'required|exists:customers,id',
+            'area_code_id'       => 'nullable|exists:area_codes,id',
             'sale_date'          => 'required|date',
             'invoice_number'     => 'nullable|string|max:255|unique:sales,invoice_number',
             'payment_method'     => 'required|in:cash,check,bank_transfer',
@@ -149,6 +146,7 @@ class SaleController extends Controller
         try {
             $sale = Sale::create([
                 'customer_id'    => $request->customer_id,
+                'area_code_id'   => $request->area_code_id ?? null,
                 'created_by'     => Auth::id(),
                 'sale_date'      => $request->sale_date,
                 'invoice_number' => $request->invoice_number,

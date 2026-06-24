@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\AreaCode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,6 +15,7 @@ class Sale extends Model
         'invoice_number',
         'or_number',
         'customer_id',
+        'area_code_id',
         'created_by',
         'sale_date',
         'payment_method',
@@ -55,6 +57,11 @@ class Sale extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function areaCode()
+    {
+        return $this->belongsTo(AreaCode::class);
     }
 
     public function createdBy()

@@ -16,6 +16,12 @@ class SaleResource extends JsonResource
             'or_number'      => $this->or_number,
             'customer'       => $this->customer?->name,
             'customer_id'    => $this->customer_id,
+            'area_code_id'   => $this->area_code_id,
+            'area_code'      => $this->areaCode ? [
+                'id'   => $this->areaCode->id,
+                'code' => $this->areaCode->code,
+                'name' => $this->areaCode->name,
+            ] : null,
             'created_by'     => $this->createdBy?->name,
             'sale_date'      => $this->sale_date?->format('M d, Y'),
             'payment_method' => $this->payment_method,
