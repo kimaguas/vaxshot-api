@@ -34,12 +34,21 @@ class ProductImport implements ToCollection, WithHeadingRow
      */
     public function collection(Collection $rows)
     {
-        $grouped = [];
+        $grouped       = [];
+        $lastBrandName = '';
 
         foreach ($rows as $index => $row) {
             $brandName = trim($row['brand_name'] ?? '');
-            $minQty    = $row['min_qty'] ?? null;
-            $price     = $row['price']   ?? null;
+
+            if (!$brandName && $lastBrandName) {
+                $brandName = $lastBrandName;
+            }
+            if ($brandName) {
+                $lastBrandName = $brandName;
+            }
+
+            $minQty = $row['min_qty'] ?? null;
+            $price  = $row['price']   ?? null;
 
             if (!$brandName || $minQty === null || $price === null) {
                 $this->errors[] = "Row " . ($index + 2) . ": brand_name, min_qty, and price are required";
