@@ -382,14 +382,18 @@ class ReportController extends Controller
 
     public function paymentsReport(Request $request)
     {
-        $aging = $request->input('aging');
+        $aging  = $request->input('aging');
+        $status = $request->input('status'); // 'paid' or null (unpaid/partial)
 
-        $query = Sale::with('customer')
-            ->whereIn('payment_status', ['unpaid', 'partial'])
-            ->where('status', '!=', 'cancelled');
+        $query = Sale::with('customer')->where('status', '!=', 'cancelled');
 
-        if (in_array($aging, ['15', '30', '60'])) {
-            $query->whereDate('sale_date', '<=', now()->subDays((int) $aging)->toDateString());
+        if ($status === 'paid') {
+            $query->where('payment_status', 'paid');
+        } else {
+            $query->whereIn('payment_status', ['unpaid', 'partial']);
+            if (in_array($aging, ['15', '30', '60'])) {
+                $query->whereDate('sale_date', '<=', now()->subDays((int) $aging)->toDateString());
+            }
         }
 
         $sales = $query->orderBy('sale_date', 'asc')->get();
@@ -408,7 +412,7 @@ class ReportController extends Controller
             ];
         });
 
-        // Aging bucket counts (always across all unpaid, regardless of filter)
+        // Aging bucket counts always reflect all unpaid (regardless of active filter)
         $allUnpaid = Sale::whereIn('payment_status', ['unpaid', 'partial'])
             ->where('status', '!=', 'cancelled')
             ->select(['id', 'sale_date'])
@@ -417,9 +421,11 @@ class ReportController extends Controller
         return response()->json([
             'sales'   => $result,
             'summary' => [
-                'total_unpaid'  => $result->count(),
-                'total_balance' => (float) $result->sum('balance'),
+                'total_unpaid'  => Sale::whereIn('payment_status', ['unpaid', 'partial'])->where('status', '!=', 'cancelled')->count(),
+                'total_paid'    => Sale::where('payment_status', 'paid')->where('status', '!=', 'cancelled')->count(),
+                'total_balance' => (float) Sale::whereIn('payment_status', ['unpaid', 'partial'])->where('status', '!=', 'cancelled')->sum('balance'),
                 'total_amount'  => (float) $result->sum('total_amount'),
+                'total_paid_amount' => (float) Sale::where('payment_status', 'paid')->where('status', '!=', 'cancelled')->sum('amount_paid'),
                 'over_15_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 15)->count(),
                 'over_30_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 30)->count(),
                 'over_60_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 60)->count(),

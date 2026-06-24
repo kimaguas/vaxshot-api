@@ -231,13 +231,15 @@ class SaleController extends Controller
     }
 
     // Confirm sale → deduct stock
-    public function confirm(Sale $sale)
+    public function confirm(Request $request, Sale $sale)
     {
         if ($sale->status !== 'draft') {
             return response()->json([
                 'message' => 'Only draft sales can be confirmed'
             ], 422);
         }
+
+        $force = $request->boolean('force', false);
 
         DB::beginTransaction();
         try {
@@ -251,7 +253,7 @@ class SaleController extends Controller
                     ->active()
                     ->sum('remaining_quantity');
 
-                if ($totalAvailable < $qtyNeeded) {
+                if (!$force && $totalAvailable < $qtyNeeded) {
                     DB::rollBack();
                     return response()->json([
                         'message' => "Insufficient stock for \"{$saleItem->product_name}\". Available: {$totalAvailable}, Required: {$qtyNeeded}",
@@ -261,9 +263,9 @@ class SaleController extends Controller
                 // Deduct using FEFO (earliest expiry first)
                 $batches = ProductBatch::where('product_id', $productId)->FEFO()->get();
 
-                $remaining       = $qtyNeeded;
-                $firstBatchId    = null;
-                $firstBatchLot   = null;
+                $remaining        = $qtyNeeded;
+                $firstBatchId     = null;
+                $firstBatchLot    = null;
                 $firstBatchExpiry = null;
 
                 foreach ($batches as $batch) {
@@ -288,9 +290,12 @@ class SaleController extends Controller
 
                 $previousStock = (int) ($saleItem->product->stock ?? $totalAvailable);
 
-                $newStock = (int) ProductBatch::where('product_id', $productId)
-                    ->where('status', '!=', 'depleted')
-                    ->sum('remaining_quantity');
+                // When force=true and batches didn't cover everything, stock goes negative
+                $newStock = $remaining > 0
+                    ? $previousStock - $qtyNeeded
+                    : (int) ProductBatch::where('product_id', $productId)
+                        ->where('status', '!=', 'depleted')
+                        ->sum('remaining_quantity');
 
                 Product::where('id', $productId)->update(['stock' => $newStock]);
 
@@ -299,6 +304,10 @@ class SaleController extends Controller
                     'lot_number'       => $firstBatchLot,
                     'expiry_date'      => $firstBatchExpiry,
                 ]);
+
+                $remarks = $remaining > 0
+                    ? "Sale confirmed (backorder, stock: {$newStock}): {$sale->sale_number}"
+                    : "Sale confirmed: {$sale->sale_number}";
 
                 InventoryLog::create([
                     'product_id'       => $productId,
@@ -309,7 +318,7 @@ class SaleController extends Controller
                     'previous_stock'   => $previousStock,
                     'new_stock'        => $newStock,
                     'reference'        => $sale->sale_number,
-                    'remarks'          => "Sale confirmed: {$sale->sale_number}",
+                    'remarks'          => $remarks,
                 ]);
             }
 

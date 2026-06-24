@@ -31,7 +31,7 @@ class SupplierController extends Controller
             });
         }
 
-        $suppliers = $query->latest()->paginate(10);
+        $suppliers = $query->orderBy('company', 'asc')->paginate(10);
 
         return response()->json([
             'suppliers'  => SupplierResource::collection($suppliers),
