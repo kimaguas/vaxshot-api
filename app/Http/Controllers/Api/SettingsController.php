@@ -17,6 +17,7 @@ class SettingsController extends Controller
         'sales'           => 'Sales',
         'quotations'      => 'Quotations',
         'purchase_orders' => 'Purchase Orders',
+        'products'        => 'Products',
     ];
 
     public function dataSummary()
@@ -52,6 +53,12 @@ class SettingsController extends Controller
                 'count'       => DB::table('purchase_orders')->count(),
                 'warning'     => 'Also deletes all product batches and resets product stock to 0. This cannot be undone.',
             ],
+            'products' => [
+                'label'       => 'Products List',
+                'description' => 'All products and their price tiers (price list catalog)',
+                'count'       => DB::table('products')->count(),
+                'warning'     => 'Also deletes all product batches and price tiers. Sale and purchase records are preserved but will lose product links.',
+            ],
         ]);
     }
 
@@ -59,7 +66,7 @@ class SettingsController extends Controller
     {
         $request->validate([
             'groups'   => 'required|array|min:1',
-            'groups.*' => 'in:activity_logs,inventory_logs,sales,quotations,purchase_orders',
+            'groups.*' => 'in:activity_logs,inventory_logs,sales,quotations,purchase_orders,products',
         ]);
 
         $groups  = $request->groups;
@@ -101,6 +108,15 @@ class SettingsController extends Controller
                 DB::table('inventory_logs')->whereNotNull('product_batch_id')->update(['product_batch_id' => null]);
                 DB::table('product_batches')->delete();
                 DB::table('products')->update(['stock' => 0]);
+            }
+
+            if (in_array('products', $groups)) {
+                $deleted['products'] = DB::table('products')->count();
+                // Nullify batch references in inventory_logs before deleting batches
+                DB::table('inventory_logs')->whereNotNull('product_batch_id')->update(['product_batch_id' => null]);
+                DB::table('product_batches')->delete();
+                // Deleting products cascades to product_tiers and quotation_template_items
+                DB::table('products')->delete();
             }
 
             DB::commit();
