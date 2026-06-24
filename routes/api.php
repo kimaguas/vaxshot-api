@@ -162,6 +162,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/purchase-orders', [ReportController::class, 'purchaseOrderReport']);
         Route::get('/customers',       [ReportController::class, 'customerReport']);
         Route::get('/expiry',          [ReportController::class, 'expiryReport']);
+        Route::get('/payments',        [ReportController::class, 'paymentsReport']);
     });
 
     // Users

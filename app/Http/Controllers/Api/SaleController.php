@@ -407,28 +407,65 @@ class SaleController extends Controller
     public function cancel(Sale $sale)
     {
         if ($sale->status === 'cancelled') {
-            return response()->json([
-                'message' => 'Sale is already cancelled'
-            ], 422);
+            return response()->json(['message' => 'Sale is already cancelled'], 422);
         }
 
-        if ($sale->status === 'confirmed') {
-            return response()->json([
-                'message' => 'Confirmed sales cannot be cancelled. Please create a return instead.'
-            ], 422);
+        DB::beginTransaction();
+        try {
+            // Restore batch stock if the sale was confirmed (stock was deducted at confirmation)
+            if ($sale->status === 'confirmed') {
+                $items = $sale->items()->with('product')->get();
+
+                foreach ($items as $saleItem) {
+                    if (!$saleItem->product_batch_id) continue;
+
+                    $batch = ProductBatch::find($saleItem->product_batch_id);
+                    if (!$batch) continue;
+
+                    $restoredQty  = $saleItem->quantity;
+                    $newRemaining = $batch->remaining_quantity + $restoredQty;
+
+                    $batch->update([
+                        'remaining_quantity' => $newRemaining,
+                        'status'             => 'active',
+                    ]);
+
+                    $newStock = (int) ProductBatch::where('product_id', $saleItem->product_id)
+                        ->where('status', '!=', 'depleted')
+                        ->sum('remaining_quantity');
+
+                    Product::where('id', $saleItem->product_id)->update(['stock' => $newStock]);
+
+                    InventoryLog::create([
+                        'product_id'       => $saleItem->product_id,
+                        'product_batch_id' => $saleItem->product_batch_id,
+                        'created_by'       => Auth::id(),
+                        'type'             => 'adjustment',
+                        'quantity'         => $restoredQty,
+                        'previous_stock'   => $newStock - $restoredQty,
+                        'new_stock'        => $newStock,
+                        'reference'        => $sale->sale_number,
+                        'remarks'          => "Sale cancelled (stock restored): {$sale->sale_number}",
+                    ]);
+                }
+            }
+
+            $sale->update(['status' => 'cancelled']);
+
+            $this->logActivity(
+                action      : 'CANCEL',
+                module      : 'Sales',
+                description : "Cancelled sale: {$sale->sale_number}",
+            );
+
+            DB::commit();
+
+            return response()->json(['message' => 'Sale cancelled successfully'], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to cancel sale: ' . $e->getMessage()], 500);
         }
-
-        $sale->update(['status' => 'cancelled']);
-
-        $this->logActivity(
-            action      : 'CANCEL',
-            module      : 'Sales',
-            description : "Cancelled sale: {$sale->sale_number}",
-        );
-
-        return response()->json([
-            'message' => 'Sale cancelled successfully'
-        ], 200);
     }
 
     // Delete sale (only draft)

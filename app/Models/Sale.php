@@ -40,13 +40,13 @@ class Sale extends Model
 
         // Satisfy the NOT NULL constraint with a temporary unique value
         static::creating(function ($sale) {
-            $sale->sale_number = 'SI-TEMP-' . uniqid();
+            $sale->sale_number = 'SN-TEMP-' . uniqid();
         });
 
         // Replace with the real number once we have the auto-increment ID
         static::created(function ($sale) {
             $sale->updateQuietly([
-                'sale_number' => 'SI-' . str_pad($sale->id, 5, '0', STR_PAD_LEFT),
+                'sale_number' => 'SN-' . str_pad($sale->id, 5, '0', STR_PAD_LEFT),
             ]);
         });
     }

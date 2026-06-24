@@ -23,7 +23,7 @@ class ReportController extends Controller
             'to'   => 'required|date|after_or_equal:from',
         ]);
 
-        $sales = Sale::with(['customer', 'items.product', 'payments'])
+        $sales = Sale::with(['customer.areaCode', 'items.product.supplier', 'payments'])
             ->where('status', 'confirmed')
             ->whereBetween('sale_date', [$request->from, $request->to])
             ->latest()
@@ -54,15 +54,58 @@ class ReportController extends Controller
 
         // Sales by customer
         $byCustomer = $sales->groupBy('customer_id')
-            ->map(function ($sales) {
+            ->map(function ($group) {
+                $customer = $group->first()->customer;
                 return [
-                    'customer'     => $sales->first()->customer?->name,
-                    'total_sales'  => $sales->count(),
-                    'total_amount' => $sales->sum('total_amount'),
-                    'total_paid'   => $sales->sum('amount_paid'),
-                    'balance'      => $sales->sum('balance'),
+                    'customer_code' => $customer?->customer_id,
+                    'customer'      => $customer?->name,
+                    'total_sales'   => $group->count(),
+                    'total_amount'  => $group->sum('total_amount'),
+                    'total_paid'    => $group->sum('amount_paid'),
+                    'balance'       => $group->sum('balance'),
                 ];
             })->values();
+
+        // Sales by supplier (line-item detail grouped by supplier)
+        $bySupplier = $sales->flatMap(function ($sale) {
+            return $sale->items->map(function ($item) use ($sale) {
+                return [
+                    'supplier'          => $item->product?->supplier?->company ?? 'Unknown',
+                    'supplier_sort'     => $item->product?->supplier_id ?? 0,
+                    'sale_date'         => $sale->sale_date?->format('M d, Y'),
+                    'customer_code'     => $sale->customer?->customer_id,
+                    'customer_name'     => $sale->customer?->name,
+                    'customer_address'  => $sale->customer?->full_address,
+                    'product'           => $item->product?->brand_name,
+                    'quantity'          => (int) $item->quantity,
+                    'amount'            => (float) $item->total_price,
+                    'invoice_number'    => $sale->invoice_number,
+                ];
+            });
+        })->groupBy('supplier')
+          ->sortBy('supplier')
+          ->map(function ($items, $supplier) {
+              return [
+                  'supplier'       => $supplier,
+                  'items'          => $items->values(),
+                  'total_quantity' => $items->sum('quantity'),
+                  'total_amount'   => (float) $items->sum('amount'),
+              ];
+          })->values();
+
+        // Sales by area
+        $byArea = $sales->groupBy(function ($sale) {
+            $area = $sale->customer?->areaCode;
+            return $area ? "{$area->code} - {$area->name}" : 'No Area';
+        })->map(function ($group, $area) {
+            return [
+                'area'         => $area,
+                'total_sales'  => $group->count(),
+                'total_amount' => (float) $group->sum('total_amount'),
+                'total_paid'   => (float) $group->sum('amount_paid'),
+                'balance'      => (float) $group->sum('balance'),
+            ];
+        })->sortBy('area')->values();
 
         return response()->json([
             'from'        => $request->from,
@@ -84,6 +127,8 @@ class ReportController extends Controller
             }),
             'by_product'  => $byProduct,
             'by_customer' => $byCustomer,
+            'by_supplier' => $bySupplier,
+            'by_area'     => $byArea,
         ], 200);
     }
 
@@ -326,6 +371,53 @@ class ReportController extends Controller
                 'expiring_urgent_count' => $expiringUrgent->count(),
                 'expired_count'         => $expired->count(),
             ]
+        ], 200);
+    }
+
+    public function paymentsReport(Request $request)
+    {
+        $aging = $request->input('aging');
+
+        $query = Sale::with('customer')
+            ->whereIn('payment_status', ['unpaid', 'partial'])
+            ->where('status', '!=', 'cancelled');
+
+        if (in_array($aging, ['15', '30', '60'])) {
+            $query->whereDate('sale_date', '<=', now()->subDays((int) $aging)->toDateString());
+        }
+
+        $sales = $query->orderBy('sale_date', 'asc')->get();
+
+        $result = $sales->map(function ($sale) {
+            return [
+                'sale_number'    => $sale->sale_number,
+                'invoice_number' => $sale->invoice_number,
+                'customer'       => $sale->customer?->name,
+                'sale_date'      => $sale->sale_date?->format('M d, Y'),
+                'days_overdue'   => (int) now()->diffInDays($sale->sale_date),
+                'total_amount'   => $sale->total_amount,
+                'amount_paid'    => $sale->amount_paid,
+                'balance'        => $sale->balance,
+                'payment_status' => $sale->payment_status,
+            ];
+        });
+
+        // Aging bucket counts (always across all unpaid, regardless of filter)
+        $allUnpaid = Sale::whereIn('payment_status', ['unpaid', 'partial'])
+            ->where('status', '!=', 'cancelled')
+            ->select(['id', 'sale_date'])
+            ->get();
+
+        return response()->json([
+            'sales'   => $result,
+            'summary' => [
+                'total_unpaid'  => $result->count(),
+                'total_balance' => (float) $result->sum('balance'),
+                'total_amount'  => (float) $result->sum('total_amount'),
+                'over_15_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 15)->count(),
+                'over_30_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 30)->count(),
+                'over_60_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 60)->count(),
+            ],
         ], 200);
     }
 }

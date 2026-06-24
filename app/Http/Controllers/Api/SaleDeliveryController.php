@@ -88,15 +88,6 @@ class SaleDeliveryController extends Controller
                 ], 422);
             }
 
-            // Check batch stock availability
-            if ($saleItem->product_batch_id) {
-                $batch = $saleItem->batch;
-                if ($batch && $batch->remaining_quantity < $qtyToDeliver) {
-                    return response()->json([
-                        'message' => "Item \"{$saleItem->product_name}\": insufficient batch stock ({$batch->remaining_quantity} available)",
-                    ], 422);
-                }
-            }
         }
 
         DB::beginTransaction();
