@@ -138,18 +138,24 @@ class ReportController extends Controller
     public function inventoryReport(Request $request)
     {
         // Current stock levels
-        $products = Product::with(['activeBatches', 'supplier'])
+        $products = Product::with(['batches', 'supplier'])
             ->active()
             ->get()
             ->map(function ($product) {
+                $activeBatches = $product->batches
+                    ->where('status', '!=', 'depleted')
+                    ->sortBy('expiry_date')
+                    ->values();
+                $isLowStock = $product->stock <= ($product->maintaining_stock ?? 0);
+
                 return [
                     'product_code'     => $product->product_code,
                     'brand_name'       => $product->brand_name,
                     'supplier'         => $product->supplier?->company,
-                    'total_stock'      => $product->total_stock,
+                    'total_stock'      => $product->stock,
                     'maintaining_stock'=> $product->maintaining_stock,
-                    'is_low_stock'     => $product->isLowStock(),
-                    'batches'          => $product->activeBatches->map(function ($batch) {
+                    'is_low_stock'     => $isLowStock,
+                    'batches'          => $activeBatches->map(function ($batch) {
                         return [
                             'lot_number'         => $batch->lot_number,
                             'expiry_date'        => $batch->expiry_date?->format('M d, Y'),

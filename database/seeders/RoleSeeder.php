@@ -27,6 +27,7 @@ class RoleSeeder extends Seeder
             'view_area_codes', 'create_area_codes', 'edit_area_codes', 'delete_area_codes',
             'view_users', 'create_users', 'edit_users', 'delete_users',
             'view_activity_logs',
+            'manage_settings',
         ];
 
         foreach ($permissions as $permission) {

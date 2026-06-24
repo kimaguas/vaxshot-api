@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\AreaCodeController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\SaleDeliveryController;
 use App\Http\Controllers\Api\ImageUploadController;
+use App\Http\Controllers\Api\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -204,5 +205,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Activity Logs
     Route::middleware('permission:view_activity_logs')
         ->get('activity-logs', [ActivityLogController::class, 'index']);
+
+    // Settings
+    Route::middleware('permission:manage_settings')->prefix('settings')->group(function () {
+        Route::get('/data-summary', [SettingsController::class, 'dataSummary']);
+        Route::post('/clean-data',  [SettingsController::class, 'cleanData']);
+    });
 
 });
