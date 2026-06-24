@@ -18,9 +18,10 @@ class StoreUserRequest extends FormRequest
             'username' => 'required|string|max:255|unique:users,username',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
-            'role'          => 'required|in:admin,manager,staff,viewer',
+            'role'          => 'required|in:admin,manager,staff,viewer,sales_rep',
             'permissions'   => 'sometimes|array',
             'permissions.*' => 'string|exists:permissions,name',
+            'area_code_id'  => 'nullable|exists:area_codes,id',
         ];
     }
 
@@ -36,7 +37,7 @@ class StoreUserRequest extends FormRequest
             'password.min'       => 'Password must be at least 6 characters',
             'password.confirmed' => 'Passwords do not match',
             'role.required'      => 'Role is required',
-            'role.in'            => 'Role must be admin, manager, staff or viewer',
+            'role.in'            => 'Role must be admin, manager, staff, viewer, or sales_rep',
         ];
     }
 }

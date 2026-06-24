@@ -23,7 +23,7 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $query = User::with('roles', 'permissions');
+        $query = User::with('roles', 'permissions', 'areaCode');
 
         if ($request->search) {
             $query->where(function ($q) use ($request) {
@@ -58,10 +58,11 @@ class UserController extends Controller
     public function store(StoreUserRequest $request)
     {
         $user = User::create([
-            'name'     => $request->name,
-            'username' => $request->username,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
+            'name'         => $request->name,
+            'username'     => $request->username,
+            'email'        => $request->email,
+            'password'     => Hash::make($request->password),
+            'area_code_id' => $request->area_code_id ?? null,
         ]);
 
         $user->assignRole($request->role);
@@ -93,12 +94,15 @@ class UserController extends Controller
         ];
 
         $user->update([
-            'name'     => $request->name     ?? $user->name,
-            'username' => $request->username ?? $user->username,
-            'email'    => $request->email    ?? $user->email,
-            'password' => $request->password
-                            ? Hash::make($request->password)
-                            : $user->password,
+            'name'         => $request->name         ?? $user->name,
+            'username'     => $request->username     ?? $user->username,
+            'email'        => $request->email        ?? $user->email,
+            'password'     => $request->password
+                                ? Hash::make($request->password)
+                                : $user->password,
+            'area_code_id' => $request->has('area_code_id')
+                                ? $request->area_code_id
+                                : $user->area_code_id,
         ]);
 
         if ($request->role) {

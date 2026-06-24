@@ -39,6 +39,14 @@ class SaleController extends Controller
                 );
             }
 
+            // Auto-enforce area code filter for Sales Rep users
+            $authUser = auth()->user();
+            if ($authUser && $authUser->hasRole('sales_rep') && $authUser->area_code_id) {
+                $q->whereHas('customer', fn ($cq) =>
+                    $cq->where('area_code_id', $authUser->area_code_id)
+                );
+            }
+
             // Date filters (mutually exclusive)
             if ($request->date) {
                 $q->whereDate('sale_date', $request->date);

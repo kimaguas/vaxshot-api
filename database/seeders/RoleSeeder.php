@@ -53,15 +53,26 @@ class RoleSeeder extends Seeder
 
         $viewerPerms = ['view_dashboard', 'view_reports'];
 
-        $admin   = Role::firstOrCreate(['name' => 'admin',   'guard_name' => 'web']);
-        $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'web']);
-        $staff   = Role::firstOrCreate(['name' => 'staff',   'guard_name' => 'web']);
-        $viewer  = Role::firstOrCreate(['name' => 'viewer',  'guard_name' => 'web']);
+        $salesRepPerms = [
+            'view_dashboard',
+            'view_products',
+            'view_customers', 'create_customers', 'edit_customers',
+            'view_sales', 'create_sales', 'edit_sales', 'confirm_sales',
+            'view_quotations', 'create_quotations', 'edit_quotations', 'send_quotations',
+            'view_reports',
+        ];
+
+        $admin    = Role::firstOrCreate(['name' => 'admin',    'guard_name' => 'web']);
+        $manager  = Role::firstOrCreate(['name' => 'manager',  'guard_name' => 'web']);
+        $staff    = Role::firstOrCreate(['name' => 'staff',    'guard_name' => 'web']);
+        $viewer   = Role::firstOrCreate(['name' => 'viewer',   'guard_name' => 'web']);
+        $salesRep = Role::firstOrCreate(['name' => 'sales_rep','guard_name' => 'web']);
 
         $admin->syncPermissions($adminPerms);
         $manager->syncPermissions($managerPerms);
         $staff->syncPermissions($staffPerms);
         $viewer->syncPermissions($viewerPerms);
+        $salesRep->syncPermissions($salesRepPerms);
 
         $user = User::firstOrCreate(
             ['email' => 'admin@vaxshot.com'],

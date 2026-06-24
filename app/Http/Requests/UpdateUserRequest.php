@@ -35,9 +35,10 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($this->route('user')),
             ],
             'password' => 'sometimes|string|min:6|confirmed',
-            'role'          => 'sometimes|in:admin,manager,staff,viewer',
+            'role'          => 'sometimes|in:admin,manager,staff,viewer,sales_rep',
             'permissions'   => 'sometimes|array',
             'permissions.*' => 'string|exists:permissions,name',
+            'area_code_id'  => 'nullable|exists:area_codes,id',
         ];
     }
 
@@ -48,7 +49,7 @@ class UpdateUserRequest extends FormRequest
             'email.unique'       => 'Email already exists',
             'password.min'       => 'Password must be at least 6 characters',
             'password.confirmed' => 'Passwords do not match',
-            'role.in'            => 'Role must be admin, manager, staff or viewer',
+            'role.in'            => 'Role must be admin, manager, staff, viewer, or sales_rep',
         ];
     }
 }

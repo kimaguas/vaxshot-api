@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\AreaCode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -18,7 +19,13 @@ class User extends Authenticatable
         'email',
         'password',
         'expo_push_token',
+        'area_code_id',
     ];
+
+    public function areaCode()
+    {
+        return $this->belongsTo(AreaCode::class);
+    }
 
     protected $hidden = [
         'password',
