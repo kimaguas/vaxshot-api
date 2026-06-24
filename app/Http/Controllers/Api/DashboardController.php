@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\Sale;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -16,28 +17,40 @@ class DashboardController extends Controller
         // ==================
         // KPI CARDS
         // ==================
-        $today     = now()->toDateString();
-        $thisMonth = now()->startOfMonth()->toDateString();
+        $today        = now()->toDateString();
+        $thisMonth    = now()->startOfMonth()->toDateString();
         $thisMonthEnd = now()->endOfMonth()->toDateString();
+
+        // Sales Rep area code restriction
+        $authUser      = Auth::user();
+        $areaCodeId    = ($authUser->hasRole('sales_rep') && $authUser->area_code_id)
+                            ? $authUser->area_code_id
+                            : null;
+
+        $saleScope = fn ($q) => $q->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId));
 
         // Sales today
         $salesToday = Sale::where('status', 'confirmed')
             ->whereDate('sale_date', $today)
+            ->where($saleScope)
             ->sum('total_amount');
 
         // Sales this month
         $salesThisMonth = Sale::where('status', 'confirmed')
             ->whereBetween('sale_date', [$thisMonth, $thisMonthEnd])
+            ->where($saleScope)
             ->sum('total_amount');
 
         // Total revenue this month (amount paid)
         $revenueThisMonth = Sale::where('status', 'confirmed')
             ->whereBetween('sale_date', [$thisMonth, $thisMonthEnd])
+            ->where($saleScope)
             ->sum('amount_paid');
 
         // Outstanding balance
         $outstandingBalance = Sale::where('status', 'confirmed')
             ->where('payment_status', '!=', 'paid')
+            ->where($saleScope)
             ->sum('balance');
 
         // Total products
@@ -60,6 +73,7 @@ class DashboardController extends Controller
         // Total unpaid sales
         $unpaidSales = Sale::where('status', 'confirmed')
             ->where('payment_status', 'unpaid')
+            ->where($saleScope)
             ->count();
 
         // ==================
@@ -70,6 +84,7 @@ class DashboardController extends Controller
                 now()->subDays(6)->toDateString(),
                 $today
             ])
+            ->where($saleScope)
             ->groupBy('sale_date')
             ->select(
                 'sale_date',
@@ -94,6 +109,7 @@ class DashboardController extends Controller
             ->join('products', 'sale_items.product_id', '=', 'products.id')
             ->where('sales.status', 'confirmed')
             ->whereMonth('sales.sale_date', now()->month)
+            ->when($areaCodeId, fn ($q) => $q->where('sales.area_code_id', $areaCodeId))
             ->groupBy('sale_items.product_id', 'products.brand_name')
             ->select(
                 'products.brand_name',
@@ -108,12 +124,12 @@ class DashboardController extends Controller
         // PAYMENT STATUS SUMMARY
         // ==================
         $paymentSummary = [
-            'paid'    => Sale::where('status', 'confirmed')
-                            ->where('payment_status', 'paid')->count(),
-            'partial' => Sale::where('status', 'confirmed')
-                            ->where('payment_status', 'partial')->count(),
-            'unpaid'  => Sale::where('status', 'confirmed')
-                            ->where('payment_status', 'unpaid')->count(),
+            'paid'    => Sale::where('status', 'confirmed')->where('payment_status', 'paid')
+                            ->where($saleScope)->count(),
+            'partial' => Sale::where('status', 'confirmed')->where('payment_status', 'partial')
+                            ->where($saleScope)->count(),
+            'unpaid'  => Sale::where('status', 'confirmed')->where('payment_status', 'unpaid')
+                            ->where($saleScope)->count(),
         ];
 
         // ==================
@@ -154,6 +170,7 @@ class DashboardController extends Controller
         $unpaidSalesList = Sale::with('customer')
             ->where('status', 'confirmed')
             ->where('payment_status', 'unpaid')
+            ->where($saleScope)
             ->latest()
             ->limit(5)
             ->get()
