@@ -404,7 +404,9 @@ class ReportController extends Controller
 
         $scope = fn ($q) => $q->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId));
 
-        $query = Sale::with('customer')->where('status', '!=', 'cancelled')->where($scope);
+        $query = Sale::with(['customer', 'deliveries' => fn ($q) => $q->orderBy('delivery_date', 'desc')])
+            ->where('status', '!=', 'cancelled')
+            ->where($scope);
 
         if ($status === 'paid') {
             $query->where('payment_status', 'paid');
@@ -418,12 +420,15 @@ class ReportController extends Controller
         $sales = $query->orderBy('sale_date', 'asc')->get();
 
         $result = $sales->map(function ($sale) {
+            $latestDelivery  = $sale->deliveries->first();
+            $referenceDate   = $latestDelivery?->delivery_date ?? $sale->sale_date;
             return [
                 'sale_number'    => $sale->sale_number,
                 'invoice_number' => $sale->invoice_number,
                 'customer'       => $sale->customer?->name,
                 'sale_date'      => $sale->sale_date?->format('M d, Y'),
-                'days_overdue'   => (int) $sale->sale_date->diffInDays(now()),
+                'delivery_date'  => $latestDelivery?->delivery_date?->format('M d, Y'),
+                'days_overdue'   => (int) $referenceDate->diffInDays(now()),
                 'total_amount'   => $sale->total_amount,
                 'amount_paid'    => $sale->amount_paid,
                 'balance'        => $sale->balance,
