@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\SaleAttachmentResource;
 
 class SaleResource extends JsonResource
 {
@@ -37,6 +38,9 @@ class SaleResource extends JsonResource
                                 ),
             'payments'       => SalePaymentResource::collection(
                                     $this->whenLoaded('payments')
+                                ),
+            'attachments'    => SaleAttachmentResource::collection(
+                                    $this->whenLoaded('attachments')
                                 ),
             'created_at'     => $this->created_at->format('M d, Y'),
         ];

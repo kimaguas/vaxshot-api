@@ -121,7 +121,7 @@ class SaleController extends Controller
     {
         return response()->json([
             'sale' => new SaleResource(
-                $sale->load(['customer', 'createdBy', 'items', 'payments.receivedBy'])
+                $sale->load(['customer', 'createdBy', 'items', 'payments.receivedBy', 'attachments'])
             )
         ], 200);
     }
@@ -234,7 +234,7 @@ class SaleController extends Controller
 
         return response()->json([
             'message' => 'Sale updated successfully',
-            'sale'    => new SaleResource($sale->load(['customer', 'items', 'payments.receivedBy'])),
+            'sale'    => new SaleResource($sale->load(['customer', 'items', 'payments.receivedBy', 'attachments'])),
         ], 200);
     }
 

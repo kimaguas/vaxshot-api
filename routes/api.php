@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\SaleDeliveryController;
 use App\Http\Controllers\Api\ImageUploadController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\SaleAttachmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -123,6 +124,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->get('sales/{sale}/deliveries', [SaleDeliveryController::class, 'index']);
     Route::middleware('permission:manage_deliveries')
         ->post('sales/{sale}/deliveries', [SaleDeliveryController::class, 'store']);
+    Route::middleware('permission:edit_sales')->group(function () {
+        Route::post('sales/{sale}/attachments',                          [SaleAttachmentController::class, 'store']);
+        Route::delete('sales/{sale}/attachments/{attachment}',           [SaleAttachmentController::class, 'destroy']);
+    });
 
     // Quotations
     Route::middleware('permission:view_quotations')->group(function () {
