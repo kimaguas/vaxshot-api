@@ -55,7 +55,8 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->latest()->paginate(10);
+        $perPage   = min((int) ($request->per_page ?? 10), 1000);
+        $customers = $query->latest()->paginate($perPage);
 
         return response()->json([
             'customers'  => CustomerResource::collection($customers),
