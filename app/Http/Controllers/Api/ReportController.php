@@ -23,9 +23,15 @@ class ReportController extends Controller
             'to'   => 'required|date|after_or_equal:from',
         ]);
 
+        $authUser   = \Illuminate\Support\Facades\Auth::user();
+        $areaCodeId = ($authUser->hasRole('sales_rep') && $authUser->area_code_id)
+                        ? $authUser->area_code_id
+                        : null;
+
         $sales = Sale::with(['customer.areaCode', 'items.product.supplier', 'payments'])
             ->where('status', 'confirmed')
             ->whereBetween('sale_date', [$request->from, $request->to])
+            ->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId))
             ->latest()
             ->get();
 
@@ -265,9 +271,15 @@ class ReportController extends Controller
             'to'   => 'required|date|after_or_equal:from',
         ]);
 
+        $authUser   = \Illuminate\Support\Facades\Auth::user();
+        $areaCodeId = ($authUser->hasRole('sales_rep') && $authUser->area_code_id)
+                        ? $authUser->area_code_id
+                        : null;
+
         $sales = Sale::with(['customer', 'items'])
             ->where('status', 'confirmed')
             ->whereBetween('sale_date', [$request->from, $request->to])
+            ->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId))
             ->get();
 
         // By customer
