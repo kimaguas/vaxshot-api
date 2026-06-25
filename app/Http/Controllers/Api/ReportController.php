@@ -404,7 +404,7 @@ class ReportController extends Controller
                 'invoice_number' => $sale->invoice_number,
                 'customer'       => $sale->customer?->name,
                 'sale_date'      => $sale->sale_date?->format('M d, Y'),
-                'days_overdue'   => (int) now()->diffInDays($sale->sale_date),
+                'days_overdue'   => (int) $sale->sale_date->diffInDays(now()),
                 'total_amount'   => $sale->total_amount,
                 'amount_paid'    => $sale->amount_paid,
                 'balance'        => $sale->balance,
@@ -426,9 +426,9 @@ class ReportController extends Controller
                 'total_balance' => (float) Sale::whereIn('payment_status', ['unpaid', 'partial'])->where('status', '!=', 'cancelled')->sum('balance'),
                 'total_amount'  => (float) $result->sum('total_amount'),
                 'total_paid_amount' => (float) Sale::where('payment_status', 'paid')->where('status', '!=', 'cancelled')->sum('amount_paid'),
-                'over_15_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 15)->count(),
-                'over_30_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 30)->count(),
-                'over_60_days'  => $allUnpaid->filter(fn ($s) => now()->diffInDays($s->sale_date) > 60)->count(),
+                'over_15_days'  => $allUnpaid->filter(fn ($s) => $s->sale_date->diffInDays(now()) > 15)->count(),
+                'over_30_days'  => $allUnpaid->filter(fn ($s) => $s->sale_date->diffInDays(now()) > 30)->count(),
+                'over_60_days'  => $allUnpaid->filter(fn ($s) => $s->sale_date->diffInDays(now()) > 60)->count(),
             ],
         ], 200);
     }
