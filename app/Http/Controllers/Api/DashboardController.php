@@ -67,8 +67,10 @@ class DashboardController extends Controller
         // Expired batches
         $expiredCount = ProductBatch::expired()->count();
 
-        // Total customers
-        $totalCustomers = Customer::active()->count();
+        // Total customers (scoped to area for sales_rep)
+        $totalCustomers = Customer::active()
+            ->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId))
+            ->count();
 
         // Total unpaid sales
         $unpaidSales = Sale::where('status', 'confirmed')
