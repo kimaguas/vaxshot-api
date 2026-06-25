@@ -211,15 +211,22 @@ class SaleController extends Controller
     // Update editable sale details (invoice number, OR number, notes, payment method)
     public function update(Request $request, Sale $sale)
     {
-        $request->validate([
+        $rules = [
             'invoice_number' => "nullable|string|max:255|unique:sales,invoice_number,{$sale->id}",
             'or_number'      => 'nullable|string|max:255',
             'payment_method' => 'sometimes|in:cash,check,bank_transfer',
             'notes'          => 'nullable|string',
             'area_code_id'   => 'nullable|exists:area_codes,id',
-        ]);
+        ];
+        if ($sale->status === 'draft') {
+            $rules['sale_date'] = 'nullable|date';
+        }
+        $request->validate($rules);
 
-        $fields  = ['invoice_number', 'or_number', 'payment_method', 'notes', 'area_code_id'];
+        $fields = ['invoice_number', 'or_number', 'payment_method', 'notes', 'area_code_id'];
+        if ($sale->status === 'draft') {
+            $fields[] = 'sale_date';
+        }
         $oldData = $sale->only($fields);
 
         $sale->update($request->only($fields));
