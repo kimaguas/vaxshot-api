@@ -9,6 +9,7 @@ use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
 use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
@@ -25,6 +26,11 @@ class CustomerController extends Controller
 
         if ($request->area_code_id) {
             $query->where('area_code_id', $request->area_code_id);
+        }
+
+        $authUser = Auth::user();
+        if ($authUser && $authUser->hasRole('sales_rep') && $authUser->area_code_id) {
+            $query->where('area_code_id', $authUser->area_code_id);
         }
 
         if ($request->city) {
@@ -67,6 +73,12 @@ class CustomerController extends Controller
     // Get single customer
     public function show(Customer $customer)
     {
+        $authUser = Auth::user();
+        if ($authUser->hasRole('sales_rep') && $authUser->area_code_id
+            && $customer->area_code_id !== $authUser->area_code_id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         return response()->json([
             'customer' => new CustomerResource($customer->load('areaCode'))
         ], 200);
@@ -75,7 +87,12 @@ class CustomerController extends Controller
     // Create customer
     public function store(StoreCustomerRequest $request)
     {
-        $customer = Customer::create($request->validated());
+        $data = $request->validated();
+        $authUser = Auth::user();
+        if ($authUser->hasRole('sales_rep') && $authUser->area_code_id && empty($data['area_code_id'])) {
+            $data['area_code_id'] = $authUser->area_code_id;
+        }
+        $customer = Customer::create($data);
 
         $this->logActivity(
             action      : 'CREATE',
@@ -93,6 +110,12 @@ class CustomerController extends Controller
     // Update customer
     public function update(UpdateCustomerRequest $request, Customer $customer)
     {
+        $authUser = Auth::user();
+        if ($authUser->hasRole('sales_rep') && $authUser->area_code_id
+            && $customer->area_code_id !== $authUser->area_code_id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         $oldData = $customer->toArray();
         $customer->update($request->validated());
 
