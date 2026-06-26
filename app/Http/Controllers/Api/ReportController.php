@@ -405,7 +405,7 @@ class ReportController extends Controller
         $scope = fn ($q) => $q->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId));
 
         $query = Sale::with(['customer', 'deliveries' => fn ($q) => $q->orderBy('delivery_date', 'desc')])
-            ->where('status', '!=', 'cancelled')
+            ->where('status', 'confirmed')
             ->where($scope);
 
         if ($status === 'paid') {
@@ -438,7 +438,7 @@ class ReportController extends Controller
 
         // Aging bucket counts scoped to same user territory
         $allUnpaid = Sale::whereIn('payment_status', ['unpaid', 'partial'])
-            ->where('status', '!=', 'cancelled')
+            ->where('status', 'confirmed')
             ->where($scope)
             ->select(['id', 'sale_date'])
             ->get();
@@ -446,11 +446,11 @@ class ReportController extends Controller
         return response()->json([
             'sales'   => $result,
             'summary' => [
-                'total_unpaid'      => Sale::whereIn('payment_status', ['unpaid', 'partial'])->where('status', '!=', 'cancelled')->where($scope)->count(),
-                'total_paid'        => Sale::where('payment_status', 'paid')->where('status', '!=', 'cancelled')->where($scope)->count(),
-                'total_balance'     => (float) Sale::whereIn('payment_status', ['unpaid', 'partial'])->where('status', '!=', 'cancelled')->where($scope)->sum('balance'),
+                'total_unpaid'      => Sale::whereIn('payment_status', ['unpaid', 'partial'])->where('status', 'confirmed')->where($scope)->count(),
+                'total_paid'        => Sale::where('payment_status', 'paid')->where('status', 'confirmed')->where($scope)->count(),
+                'total_balance'     => (float) Sale::whereIn('payment_status', ['unpaid', 'partial'])->where('status', 'confirmed')->where($scope)->sum('balance'),
                 'total_amount'      => (float) $result->sum('total_amount'),
-                'total_paid_amount' => (float) Sale::where('payment_status', 'paid')->where('status', '!=', 'cancelled')->where($scope)->sum('amount_paid'),
+                'total_paid_amount' => (float) Sale::where('payment_status', 'paid')->where('status', 'confirmed')->where($scope)->sum('amount_paid'),
                 'over_15_days'      => $allUnpaid->filter(fn ($s) => $s->sale_date->diffInDays(now()) > 15)->count(),
                 'over_30_days'      => $allUnpaid->filter(fn ($s) => $s->sale_date->diffInDays(now()) > 30)->count(),
                 'over_60_days'      => $allUnpaid->filter(fn ($s) => $s->sale_date->diffInDays(now()) > 60)->count(),
