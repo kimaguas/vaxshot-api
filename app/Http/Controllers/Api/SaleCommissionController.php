@@ -27,7 +27,7 @@ class SaleCommissionController extends Controller
             $areaCodeId = $request->input('area_code_id') ?: null;
         }
 
-        $query = Sale::with(['customer', 'items.product', 'deliveries', 'payments', 'commission.collectedBy'])
+        $query = Sale::with(['customer', 'items.product', 'deliveries', 'payments', 'commission.collectedBy', 'areaCode'])
             ->where('status', 'confirmed')
             ->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId));
 
@@ -47,7 +47,7 @@ class SaleCommissionController extends Controller
         $result = $sales->map(fn ($s) => $this->formatSale($s));
 
         // Summary scoped to same territory/filter
-        $allSales = Sale::with(['items.product', 'commission'])
+        $allSales = Sale::with(['items.product', 'commission', 'areaCode'])
             ->where('status', 'confirmed')
             ->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId))
             ->get();
@@ -148,9 +148,10 @@ class SaleCommissionController extends Controller
 
     private function calcCommission(Sale $sale): float
     {
-        return (float) $sale->items->sum(function ($item) {
+        $pct = ((float) ($sale->areaCode?->commission_percentage ?? 50)) / 100;
+        return (float) $sale->items->sum(function ($item) use ($pct) {
             $cost = (float) ($item->product?->acquisition_cost ?? 0);
-            return ((float) $item->unit_price - $cost) * (int) $item->quantity * 0.5;
+            return ((float) $item->unit_price - $cost) * (int) $item->quantity * $pct;
         });
     }
 
@@ -175,6 +176,7 @@ class SaleCommissionController extends Controller
             'total_amount'      => $sale->total_amount,
             'payment_status'    => $sale->payment_status,
             'delivery_status'   => $sale->delivery_status,
+            'commission_percentage' => (float) ($sale->areaCode?->commission_percentage ?? 50),
             'commission_amount' => $sale->commission?->commission_amount
                                     ? (float) $sale->commission->commission_amount
                                     : round($this->calcCommission($sale), 2),

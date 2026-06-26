@@ -9,7 +9,11 @@ class AreaCode extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['code', 'name', 'description'];
+    protected $fillable = ['code', 'name', 'description', 'commission_percentage'];
+
+    protected $casts = [
+        'commission_percentage' => 'decimal:2',
+    ];
 
     public function customers()
     {

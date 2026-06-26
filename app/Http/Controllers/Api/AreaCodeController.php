@@ -48,12 +48,16 @@ class AreaCodeController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code' => 'required|string|max:50|unique:area_codes,code',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'code'                  => 'required|string|max:50|unique:area_codes,code',
+            'name'                  => 'required|string|max:255',
+            'description'           => 'nullable|string',
+            'commission_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $areaCode = AreaCode::create($request->only('code', 'name', 'description'));
+        $areaCode = AreaCode::create([
+            ...$request->only('code', 'name', 'description'),
+            'commission_percentage' => $request->input('commission_percentage', 50),
+        ]);
 
         $this->logActivity(
             action:      'CREATE',
@@ -71,13 +75,17 @@ class AreaCodeController extends Controller
     public function update(Request $request, AreaCode $areaCode)
     {
         $request->validate([
-            'code' => "required|string|max:50|unique:area_codes,code,{$areaCode->id}",
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'code'                  => "required|string|max:50|unique:area_codes,code,{$areaCode->id}",
+            'name'                  => 'required|string|max:255',
+            'description'           => 'nullable|string',
+            'commission_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $oldData = $areaCode->toArray();
-        $areaCode->update($request->only('code', 'name', 'description'));
+        $areaCode->update([
+            ...$request->only('code', 'name', 'description'),
+            'commission_percentage' => $request->input('commission_percentage', $areaCode->commission_percentage),
+        ]);
 
         $this->logActivity(
             action:      'UPDATE',
