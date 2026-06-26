@@ -87,7 +87,8 @@ class SaleCommissionController extends Controller
     public function collect(Request $request, Sale $sale)
     {
         $request->validate([
-            'notes' => 'nullable|string|max:500',
+            'notes'          => 'nullable|string|max:500',
+            'collected_date' => 'nullable|date',
         ]);
 
         if ($sale->payment_status !== 'paid') {
@@ -97,11 +98,15 @@ class SaleCommissionController extends Controller
         $sale->load('items.product');
         $commissionAmount = $this->calcCommission($sale);
 
+        $collectedAt = $request->collected_date
+            ? \Carbon\Carbon::parse($request->collected_date)
+            : now();
+
         SaleCommission::updateOrCreate(
             ['sale_id' => $sale->id],
             [
                 'commission_amount' => round($commissionAmount, 2),
-                'collected_at'      => now(),
+                'collected_at'      => $collectedAt,
                 'collected_by'      => Auth::id(),
                 'notes'             => $request->notes,
             ]
