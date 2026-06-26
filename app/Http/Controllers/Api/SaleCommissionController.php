@@ -18,10 +18,14 @@ class SaleCommissionController extends Controller
         $status = $request->input('status', 'pending');
 
         /** @var \App\Models\User $authUser */
-        $authUser   = Auth::user();
-        $areaCodeId = ($authUser->hasRole('sales_rep') && $authUser->area_code_id)
-                        ? $authUser->area_code_id
-                        : null;
+        $authUser = Auth::user();
+
+        // Sales reps are always scoped to their own territory; others may filter by area code
+        if ($authUser->hasRole('sales_rep') && $authUser->area_code_id) {
+            $areaCodeId = $authUser->area_code_id;
+        } else {
+            $areaCodeId = $request->input('area_code_id') ?: null;
+        }
 
         $query = Sale::with(['customer', 'items.product', 'deliveries', 'payments', 'commission.collectedBy'])
             ->where('status', 'confirmed')
@@ -42,7 +46,7 @@ class SaleCommissionController extends Controller
         $sales  = $query->orderBy('sale_date', 'desc')->get();
         $result = $sales->map(fn ($s) => $this->formatSale($s));
 
-        // Summary across all confirmed sales (unfiltered by status)
+        // Summary scoped to same territory/filter
         $allSales = Sale::with(['items.product', 'commission'])
             ->where('status', 'confirmed')
             ->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId))
