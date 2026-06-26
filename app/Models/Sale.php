@@ -89,6 +89,11 @@ class Sale extends Model
         return $this->hasMany(SaleAttachment::class);
     }
 
+    public function commission()
+    {
+        return $this->hasOne(SaleCommission::class);
+    }
+
     // Update payment status
     public function updatePaymentStatus()
     {

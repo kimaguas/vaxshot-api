@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\SaleDeliveryController;
 use App\Http\Controllers\Api\ImageUploadController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SaleAttachmentController;
+use App\Http\Controllers\Api\SaleCommissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -210,6 +211,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Activity Logs
     Route::middleware('permission:view_activity_logs')
         ->get('activity-logs', [ActivityLogController::class, 'index']);
+
+    // Sales Commissions
+    Route::middleware('permission:view_sales_commissions')
+        ->get('sale-commissions', [SaleCommissionController::class, 'index']);
+    Route::middleware('permission:collect_commission')
+        ->post('sale-commissions/{sale}/collect', [SaleCommissionController::class, 'collect']);
 
     // Settings
     Route::middleware('permission:manage_settings')->prefix('settings')->group(function () {

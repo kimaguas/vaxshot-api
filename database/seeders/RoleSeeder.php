@@ -27,6 +27,7 @@ class RoleSeeder extends Seeder
             'view_area_codes', 'create_area_codes', 'edit_area_codes', 'delete_area_codes',
             'view_users', 'create_users', 'edit_users', 'delete_users',
             'view_activity_logs',
+            'view_sales_commissions', 'collect_commission',
             'manage_settings',
         ];
 
@@ -61,6 +62,7 @@ class RoleSeeder extends Seeder
             'view_quotations', 'create_quotations', 'edit_quotations', 'send_quotations',
             'view_reports',
             'view_area_codes',
+            'view_sales_commissions', 'collect_commission',
         ];
 
         $admin    = Role::firstOrCreate(['name' => 'admin',    'guard_name' => 'web']);
