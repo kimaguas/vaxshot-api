@@ -23,7 +23,7 @@ class SaleCommissionController extends Controller
                         ? $authUser->area_code_id
                         : null;
 
-        $query = Sale::with(['customer', 'items.product', 'deliveries', 'commission.collectedBy'])
+        $query = Sale::with(['customer', 'items.product', 'deliveries', 'payments', 'commission.collectedBy'])
             ->where('status', 'confirmed')
             ->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId));
 
@@ -84,11 +84,30 @@ class SaleCommissionController extends Controller
         ]);
     }
 
+    public function updateAmount(Request $request, Sale $sale)
+    {
+        $request->validate([
+            'commission_amount' => 'required|numeric|min:0',
+            'cost_overrides'    => 'nullable|array',
+        ]);
+
+        SaleCommission::updateOrCreate(
+            ['sale_id' => $sale->id],
+            [
+                'commission_amount' => round((float) $request->commission_amount, 2),
+                'cost_overrides'    => $request->cost_overrides,
+            ]
+        );
+
+        return response()->json(['message' => 'Commission amount updated']);
+    }
+
     public function collect(Request $request, Sale $sale)
     {
         $request->validate([
-            'notes'          => 'nullable|string|max:500',
-            'collected_date' => 'nullable|date',
+            'notes'             => 'nullable|string|max:500',
+            'collected_date'    => 'nullable|date',
+            'commission_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($sale->payment_status !== 'paid') {
@@ -96,7 +115,9 @@ class SaleCommissionController extends Controller
         }
 
         $sale->load('items.product');
-        $commissionAmount = $this->calcCommission($sale);
+        $commissionAmount = $request->filled('commission_amount')
+            ? (float) $request->commission_amount
+            : ($sale->commission?->commission_amount ?? $this->calcCommission($sale));
 
         $collectedAt = $request->collected_date
             ? \Carbon\Carbon::parse($request->collected_date)
@@ -132,19 +153,29 @@ class SaleCommissionController extends Controller
     private function formatSale(Sale $sale): array
     {
         $latestDelivery = $sale->deliveries->sortByDesc('delivery_date')->first();
+        $latestPayment  = $sale->payments->sortByDesc('payment_date')->first();
+        $customer       = $sale->customer;
 
         return [
             'id'                => $sale->id,
             'sale_number'       => $sale->sale_number,
             'invoice_number'    => $sale->invoice_number,
-            'customer'          => $sale->customer?->name,
+            'or_number'         => $sale->or_number,
+            'payment_method'    => $sale->payment_method,
+            'customer'          => $customer?->name,
+            'customer_address'  => $customer?->full_address,
+            'customer_contact'  => $customer?->contact_no,
             'sale_date'         => $sale->sale_date?->format('M d, Y'),
             'delivery_date'     => $latestDelivery?->delivery_date?->format('M d, Y'),
+            'payment_date'      => $latestPayment?->payment_date?->format('M d, Y'),
             'total_amount'      => $sale->total_amount,
             'payment_status'    => $sale->payment_status,
             'delivery_status'   => $sale->delivery_status,
-            'commission_amount' => round($this->calcCommission($sale), 2),
-            'collected_at'      => $sale->commission?->collected_at?->format('M d, Y h:i A'),
+            'commission_amount' => $sale->commission?->commission_amount
+                                    ? (float) $sale->commission->commission_amount
+                                    : round($this->calcCommission($sale), 2),
+            'cost_overrides'    => $sale->commission?->cost_overrides ?? [],
+            'collected_at'      => $sale->commission?->collected_at?->format('M d, Y'),
             'collected_by'      => $sale->commission?->collectedBy?->name,
             'items'             => $sale->items->map(fn ($item) => [
                 'product_name'     => $item->product_name,

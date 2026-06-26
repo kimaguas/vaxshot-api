@@ -215,6 +215,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Sales Commissions
     Route::middleware('permission:view_sales_commissions')
         ->get('sale-commissions', [SaleCommissionController::class, 'index']);
+    Route::middleware('permission:view_sales_commissions')
+        ->patch('sale-commissions/{sale}/amount', [SaleCommissionController::class, 'updateAmount']);
     Route::middleware('permission:collect_commission')
         ->post('sale-commissions/{sale}/collect', [SaleCommissionController::class, 'collect']);
 
