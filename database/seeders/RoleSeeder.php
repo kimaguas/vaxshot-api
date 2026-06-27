@@ -28,6 +28,7 @@ class RoleSeeder extends Seeder
             'view_users', 'create_users', 'edit_users', 'delete_users',
             'view_activity_logs',
             'view_sales_commissions', 'collect_commission',
+            'view_bids', 'create_bids', 'edit_bids', 'delete_bids',
             'manage_settings',
         ];
 
@@ -50,6 +51,7 @@ class RoleSeeder extends Seeder
             'delete_area_codes',
             'view_acquisition_cost',
             'manage_products',
+            'delete_bids',
         ]));
 
         $viewerPerms = ['view_dashboard', 'view_reports'];
@@ -63,6 +65,7 @@ class RoleSeeder extends Seeder
             'view_reports',
             'view_area_codes',
             'view_sales_commissions', 'collect_commission',
+            'view_bids', 'create_bids', 'edit_bids',
         ];
 
         $admin    = Role::firstOrCreate(['name' => 'admin',    'guard_name' => 'web']);

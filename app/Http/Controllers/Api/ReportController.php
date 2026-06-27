@@ -52,7 +52,7 @@ class ReportController extends Controller
             ->map(function ($items) {
                 return [
                     'product'        => $items->first()->product?->brand_name,
-                    'product_code'   => $items->first()->product?->product_code,
+                    'supplier'       => $items->first()->product?->supplier?->company,
                     'total_quantity' => $items->sum('quantity'),
                     'total_amount'   => $items->sum('total_price'),
                 ];

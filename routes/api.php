@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\ImageUploadController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SaleAttachmentController;
 use App\Http\Controllers\Api\SaleCommissionController;
+use App\Http\Controllers\Api\BidController;
+use App\Http\Controllers\Api\BidAttachmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -219,6 +221,26 @@ Route::middleware('auth:sanctum')->group(function () {
         ->patch('sale-commissions/{sale}/amount', [SaleCommissionController::class, 'updateAmount']);
     Route::middleware('permission:collect_commission')
         ->post('sale-commissions/{sale}/collect', [SaleCommissionController::class, 'collect']);
+
+    // Bids
+    Route::middleware('permission:view_bids')->group(function () {
+        Route::get('bids',       [BidController::class, 'index']);
+        Route::get('bids/{bid}', [BidController::class, 'show']);
+    });
+    Route::middleware('permission:create_bids')
+        ->post('bids', [BidController::class, 'store']);
+    Route::middleware('permission:create_bids')
+        ->post('bids/extract-from-file', [BidController::class, 'extractFromFile']);
+    Route::middleware('permission:edit_bids')->group(function () {
+        Route::put('bids/{bid}',          [BidController::class, 'update']);
+        Route::patch('bids/{bid}/status', [BidController::class, 'updateStatus']);
+    });
+    Route::middleware('permission:delete_bids')
+        ->delete('bids/{bid}', [BidController::class, 'destroy']);
+    Route::middleware('permission:create_bids')
+        ->post('bids/{bid}/attachments', [BidAttachmentController::class, 'store']);
+    Route::middleware('permission:edit_bids')
+        ->delete('bids/{bid}/attachments/{attachment}', [BidAttachmentController::class, 'destroy']);
 
     // Settings
     Route::middleware('permission:manage_settings')->prefix('settings')->group(function () {
