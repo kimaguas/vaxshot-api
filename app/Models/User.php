@@ -20,6 +20,7 @@ class User extends Authenticatable
         'password',
         'expo_push_token',
         'area_code_id',
+        'sales_rep_commission',
     ];
 
     public function areaCode()

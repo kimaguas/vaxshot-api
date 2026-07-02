@@ -16,7 +16,8 @@ class UserResource extends JsonResource
             'email'        => $this->email,
             'role'         => $this->getRoleNames()->first(),
             'permissions'  => $this->getDirectPermissions()->pluck('name')->values(),
-            'area_code_id' => $this->area_code_id,
+            'area_code_id'          => $this->area_code_id,
+            'sales_rep_commission'  => $this->sales_rep_commission,
             'area_code'    => $this->whenLoaded('areaCode', fn () => [
                 'id'   => $this->areaCode->id,
                 'code' => $this->areaCode->code,

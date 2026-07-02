@@ -62,7 +62,8 @@ class UserController extends Controller
             'username'     => $request->username,
             'email'        => $request->email,
             'password'     => Hash::make($request->password),
-            'area_code_id' => $request->area_code_id ?? null,
+            'area_code_id'         => $request->area_code_id ?? null,
+            'sales_rep_commission' => $request->sales_rep_commission ?? null,
         ]);
 
         $user->assignRole($request->role);
@@ -100,9 +101,12 @@ class UserController extends Controller
             'password'     => $request->password
                                 ? Hash::make($request->password)
                                 : $user->password,
-            'area_code_id' => $request->has('area_code_id')
+            'area_code_id'         => $request->has('area_code_id')
                                 ? $request->area_code_id
                                 : $user->area_code_id,
+            'sales_rep_commission' => $request->has('sales_rep_commission')
+                                ? $request->sales_rep_commission
+                                : $user->sales_rep_commission,
         ]);
 
         if ($request->role) {

@@ -38,7 +38,8 @@ class UpdateUserRequest extends FormRequest
             'role'          => 'sometimes|in:admin,manager,staff,viewer,sales_rep',
             'permissions'   => 'sometimes|array',
             'permissions.*' => 'string|exists:permissions,name',
-            'area_code_id'  => 'nullable|exists:area_codes,id',
+            'area_code_id'          => 'nullable|exists:area_codes,id',
+            'sales_rep_commission'  => 'nullable|numeric|min:0|max:100',
         ];
     }
 
