@@ -19,6 +19,7 @@ class CustomerResource extends JsonResource
             'province'       => $this->province,
             'full_address'   => $this->full_address,
             'contact_no'     => $this->contact_no,
+            'tin_no'         => $this->tin_no,
             'specialization' => $this->specialization,
             'status'         => $this->status,
             'area_code_id'   => $this->area_code_id,

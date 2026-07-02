@@ -404,7 +404,7 @@ class ReportController extends Controller
 
         $scope = fn ($q) => $q->when($areaCodeId, fn ($q) => $q->where('area_code_id', $areaCodeId));
 
-        $query = Sale::with(['customer', 'deliveries' => fn ($q) => $q->orderBy('delivery_date', 'desc')])
+        $query = Sale::with(['customer', 'createdBy', 'items', 'deliveries' => fn ($q) => $q->orderBy('delivery_date', 'desc')])
             ->where('status', 'confirmed')
             ->where($scope);
 
@@ -425,14 +425,27 @@ class ReportController extends Controller
             return [
                 'sale_number'    => $sale->sale_number,
                 'invoice_number' => $sale->invoice_number,
-                'customer'       => $sale->customer?->name,
-                'sale_date'      => $sale->sale_date?->format('M d, Y'),
-                'delivery_date'  => $latestDelivery?->delivery_date?->format('M d, Y'),
-                'days_overdue'   => (int) $referenceDate->diffInDays(now()),
-                'total_amount'   => $sale->total_amount,
-                'amount_paid'    => $sale->amount_paid,
-                'balance'        => $sale->balance,
-                'payment_status' => $sale->payment_status,
+                'customer'         => $sale->customer?->name,
+                'customer_address' => $sale->customer?->full_address,
+                'customer_tin'     => $sale->customer?->tin_no,
+                'account_manager'  => $sale->createdBy?->name,
+                'invoice_number'   => $sale->invoice_number,
+                'po_number'        => $sale->po_number,
+                'sale_date'        => $sale->sale_date?->format('M d, Y'),
+                'delivery_date'    => $latestDelivery?->delivery_date?->format('M d, Y'),
+                'due_date'         => $latestDelivery?->delivery_date?->addDays(30)?->format('M d, Y'),
+                'days_overdue'     => (int) $referenceDate->diffInDays(now()),
+                'total_amount'     => $sale->total_amount,
+                'amount_paid'      => $sale->amount_paid,
+                'balance'          => $sale->balance,
+                'payment_status'   => $sale->payment_status,
+                'soa_number'       => 'SOA-' . now()->year . '-' . ($sale->invoice_number ?? str_pad($sale->id, 5, '0', STR_PAD_LEFT)),
+                'items'            => $sale->items->map(fn ($i) => [
+                    'product_name' => $i->product_name,
+                    'quantity'     => $i->quantity,
+                    'unit_price'   => (float) $i->unit_price,
+                    'total_price'  => (float) $i->total_price,
+                ]),
             ];
         });
 

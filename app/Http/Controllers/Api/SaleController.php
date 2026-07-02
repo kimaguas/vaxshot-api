@@ -134,6 +134,7 @@ class SaleController extends Controller
             'area_code_id'       => 'nullable|exists:area_codes,id',
             'sale_date'          => 'required|date',
             'invoice_number'     => 'nullable|string|max:255|unique:sales,invoice_number',
+            'po_number'          => 'nullable|string|max:255',
             'payment_method'     => 'required|in:cash,check,bank_transfer',
             'notes'              => 'nullable|string',
             'items'              => 'required|array|min:1',
@@ -150,6 +151,7 @@ class SaleController extends Controller
                 'created_by'     => Auth::id(),
                 'sale_date'      => $request->sale_date,
                 'invoice_number' => $request->invoice_number,
+                'po_number'      => $request->po_number,
                 'payment_method' => $request->payment_method,
                 'payment_status' => 'unpaid',
                 'total_amount'   => 0,
@@ -213,6 +215,7 @@ class SaleController extends Controller
     {
         $rules = [
             'invoice_number' => "nullable|string|max:255|unique:sales,invoice_number,{$sale->id}",
+            'po_number'      => 'nullable|string|max:255',
             'or_number'      => 'nullable|string|max:255',
             'payment_method' => 'sometimes|in:cash,check,bank_transfer',
             'notes'          => 'nullable|string',
@@ -223,7 +226,7 @@ class SaleController extends Controller
         }
         $request->validate($rules);
 
-        $fields = ['invoice_number', 'or_number', 'payment_method', 'notes', 'area_code_id'];
+        $fields = ['invoice_number', 'po_number', 'or_number', 'payment_method', 'notes', 'area_code_id'];
         if ($sale->status === 'draft') {
             $fields[] = 'sale_date';
         }

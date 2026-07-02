@@ -17,6 +17,7 @@ class Customer extends Model
         'city',
         'province',
         'contact_no',
+        'tin_no',
         'specialization',
         'status',
         'area_code_id',

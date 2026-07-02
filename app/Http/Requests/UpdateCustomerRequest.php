@@ -22,6 +22,7 @@ class UpdateCustomerRequest extends FormRequest
             'city'           => 'nullable|string|max:255',
             'province'       => 'nullable|string|max:255',
             'contact_no'     => 'nullable|string|max:255',
+            'tin_no'         => 'nullable|string|max:50',
             'specialization' => 'nullable|string|max:255',
             'status'         => 'sometimes|in:active,inactive',
             'area_code_id'   => 'nullable|exists:area_codes,id',

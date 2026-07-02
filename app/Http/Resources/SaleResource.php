@@ -14,6 +14,7 @@ class SaleResource extends JsonResource
             'id'             => $this->id,
             'sale_number'    => $this->sale_number,
             'invoice_number' => $this->invoice_number,
+            'po_number'      => $this->po_number,
             'or_number'      => $this->or_number,
             'customer'       => $this->customer?->name,
             'customer_id'    => $this->customer_id,
