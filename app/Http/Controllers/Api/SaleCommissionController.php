@@ -59,7 +59,9 @@ class SaleCommissionController extends Controller
         ];
 
         foreach ($allSales as $s) {
-            $amount      = $this->calcCommission($s);
+            $amount      = $s->commission?->commission_amount
+                            ? (float) $s->commission->commission_amount
+                            : $this->calcCommission($s);
             $isCollected = $s->commission?->collected_at !== null;
             $isPaid      = $s->payment_status === 'paid';
 
