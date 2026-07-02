@@ -53,9 +53,9 @@ class SaleCommissionController extends Controller
             ->get();
 
         $summary = [
-            'pending_total'     => 0, 'pending_count'     => 0,
-            'for_release_total' => 0, 'for_release_count' => 0,
-            'collected_total'   => 0, 'collected_count'   => 0,
+            'pending_total'           => 0, 'pending_count'     => 0, 'pending_sales_total'     => 0,
+            'for_release_total'       => 0, 'for_release_count' => 0, 'for_release_sales_total' => 0,
+            'collected_total'         => 0, 'collected_count'   => 0, 'collected_sales_total'   => 0,
         ];
 
         foreach ($allSales as $s) {
@@ -64,26 +64,32 @@ class SaleCommissionController extends Controller
             $isPaid      = $s->payment_status === 'paid';
 
             if ($isCollected) {
-                $summary['collected_total'] += $amount;
-                $summary['collected_count'] += 1;
+                $summary['collected_total']       += $amount;
+                $summary['collected_count']       += 1;
+                $summary['collected_sales_total'] += (float) $s->total_amount;
             } elseif ($isPaid) {
-                $summary['for_release_total'] += $amount;
-                $summary['for_release_count'] += 1;
+                $summary['for_release_total']       += $amount;
+                $summary['for_release_count']       += 1;
+                $summary['for_release_sales_total'] += (float) $s->total_amount;
             } else {
-                $summary['pending_total'] += $amount;
-                $summary['pending_count'] += 1;
+                $summary['pending_total']       += $amount;
+                $summary['pending_count']       += 1;
+                $summary['pending_sales_total'] += (float) $s->total_amount;
             }
         }
 
         return response()->json([
             'sales'   => $result,
             'summary' => [
-                'pending_total'     => round($summary['pending_total'], 2),
-                'pending_count'     => $summary['pending_count'],
-                'for_release_total' => round($summary['for_release_total'], 2),
-                'for_release_count' => $summary['for_release_count'],
-                'collected_total'   => round($summary['collected_total'], 2),
-                'collected_count'   => $summary['collected_count'],
+                'pending_total'           => round($summary['pending_total'], 2),
+                'pending_count'           => $summary['pending_count'],
+                'pending_sales_total'     => round($summary['pending_sales_total'], 2),
+                'for_release_total'       => round($summary['for_release_total'], 2),
+                'for_release_count'       => $summary['for_release_count'],
+                'for_release_sales_total' => round($summary['for_release_sales_total'], 2),
+                'collected_total'         => round($summary['collected_total'], 2),
+                'collected_count'         => $summary['collected_count'],
+                'collected_sales_total'   => round($summary['collected_sales_total'], 2),
             ],
         ]);
     }
